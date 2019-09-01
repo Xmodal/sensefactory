@@ -1,0 +1,56 @@
+{
+	"name" : "SENSE_FACTORY_MAX",
+	"version" : 1,
+	"creationdate" : 3643381600,
+	"modificationdate" : 3650025247,
+	"viewrect" : [ 25.0, 70.0, 300.0, 500.0 ],
+	"autoorganize" : 1,
+	"hideprojectwindow" : 0,
+	"showdependencies" : 1,
+	"autolocalize" : 0,
+	"contents" : 	{
+		"patchers" : 		{
+			"Arri_SkyPanel_8b.maxpat" : 			{
+				"kind" : "patcher",
+				"toplevel" : 1
+			}
+,
+			"_main.maxpat" : 			{
+				"kind" : "patcher",
+				"local" : 1
+			}
+,
+			"_main_june.maxpat" : 			{
+				"kind" : "patcher",
+				"local" : 1
+			}
+,
+			"senseStage.maxpat" : 			{
+				"kind" : "patcher",
+				"local" : 1
+			}
+
+		}
+,
+		"externals" : 		{
+
+		}
+
+	}
+,
+	"layout" : 	{
+
+	}
+,
+	"searchpath" : 	{
+
+	}
+,
+	"detailsvisible" : 0,
+	"amxdtype" : 1633771873,
+	"readonly" : 0,
+	"devpathtype" : 0,
+	"devpath" : ".",
+	"sortmode" : 0,
+	"viewmode" : 0
+}
