@@ -67,8 +67,6 @@ distance_threshold = args.distance_threshold
 
 next_data_requested = False
 start_time = time.time()
-current_speed = 0
-current_steer = 0
 
 # Create node signal objects.
 node_signals = {}
