@@ -25,7 +25,7 @@ class NodeSignal:
             return False
 
         else:
-            DISTANCE_THRESHOLD = 5
+            global distance_threshold
             detected = False
 
             delta_time = t - self.prev_time
@@ -33,7 +33,7 @@ class NodeSignal:
             print("Udate nid={} at t={} and distance={}: {} cm/sec".format(self.nid, t, distance, delta_distance))
 
             # If slope is going down : someone is leaving
-            if delta_distance > DISTANCE_THRESHOLD:
+            if delta_distance > distance_threshold  :
                 self.presence_detected = True
 
             # Slope is not going down but someone had been detected: trigger detection
@@ -54,12 +54,16 @@ parser.add_argument("--send-port", default="57121",
                         help="Specify the port number to send to the main application.")
 parser.add_argument("--ip", default="127.0.0.1",
                         help="Specify the ip address of the main application.")
+parser.add_argument("--distance_threshold", default=5.0,
+                        help="Distance variation threshold to detect presence (in cm/s).")
 
 args = parser.parse_args()
 dispatcher = dispatcher.Dispatcher()
 server = osc_server.ThreadingOSCUDPServer(("localhost", int(args.receive_port)), dispatcher)
 client = udp_client.SimpleUDPClient(args.ip, int(args.send_port))
 server_thread = threading.Thread(target=server.serve_forever)
+
+distance_threshold = args.distance_threshold
 
 next_data_requested = False
 start_time = time.time()
