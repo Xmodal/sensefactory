@@ -33,7 +33,7 @@ class NodeSignal:
             print("Udate nid={} at t={} and distance={}: {} cm/sec".format(self.nid, t, distance, delta_distance))
 
             # If slope is going down : someone is leaving
-            if delta_distance > distance_threshold  :
+            if delta_distance > distance_threshold:
                 self.presence_detected = True
 
             # Slope is not going down but someone had been detected: trigger detection
