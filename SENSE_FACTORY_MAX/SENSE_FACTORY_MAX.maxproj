@@ -2,7 +2,7 @@
 	"name" : "SENSE_FACTORY_MAX",
 	"version" : 1,
 	"creationdate" : 3643381600,
-	"modificationdate" : 3650203473,
+	"modificationdate" : 3650266928,
 	"viewrect" : [ 25.0, 70.0, 300.0, 642.0 ],
 	"autoorganize" : 1,
 	"hideprojectwindow" : 0,
@@ -12,7 +12,6 @@
 		"patchers" : 		{
 			"Arri_SkyPanel_8b.maxpat" : 			{
 				"kind" : "patcher",
-				"local" : 1,
 				"toplevel" : 1
 			}
 ,
@@ -32,6 +31,16 @@
 			}
 ,
 			"OSC_DMX.maxpat" : 			{
+				"kind" : "patcher",
+				"local" : 1
+			}
+,
+			"superCycle.maxpat" : 			{
+				"kind" : "patcher",
+				"local" : 1
+			}
+,
+			"superBurst.maxpat" : 			{
 				"kind" : "patcher",
 				"local" : 1
 			}
