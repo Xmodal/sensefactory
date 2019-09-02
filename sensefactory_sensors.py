@@ -30,7 +30,7 @@ class NodeSignal:
 
             delta_time = t - self.prev_time
             delta_distance = (distance - self.prev_distance) / delta_time    # instantaneous distance variation in cm/sec
-            print("Udate nid={} at t={} and distance={}: {} cm/sec".format(self.nid, t, distance, delta_distance))
+            print("Udate nid={} at t={} and distance={}: {} cm/sec (dt={})".format(self.nid, t, distance, delta_distance, delta_time))
 
             # If slope is going down : someone is leaving
             if delta_distance > distance_threshold:
@@ -43,6 +43,8 @@ class NodeSignal:
 
             self.prev_distance = distance
             self.prev_time = t
+            if detected:
+                print("*** DETECTED {} ***".format(self.nid))
             return detected
 
 
