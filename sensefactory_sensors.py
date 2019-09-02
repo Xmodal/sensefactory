@@ -25,13 +25,12 @@ class NodeSignal:
             return False
 
         else:
-            global distance_threshold
+            global distance_threshold, verbose_mode
             detected = False
 
             delta_time = t - self.prev_time
             delta_distance = (distance - self.prev_distance) / delta_time    # instantaneous distance variation in cm/sec
-            print("Udate nid={} at t={} and distance={}: {} cm/sec (dt={})".format(self.nid, t, distance, delta_distance, delta_time))
-
+    
             # If slope is going down : someone is leaving
             if delta_distance > distance_threshold:
                 self.presence_detected = True
@@ -42,9 +41,11 @@ class NodeSignal:
                 self.presence_detected = False
 
             self.prev_distance = distance
-            self.prev_time = t
-            if detected:
-                print("*** DETECTED {} ***".format(self.nid))
+            self.prev_time = t  
+            if verbose_mode:
+                print("Udate nid={} at t={} and distance={}: {} cm/sec (dt={})".format(self.nid, t, distance, delta_distance, delta_time))
+                if detected:
+                    print("*** DETECTED {} ***".format(self.nid))
             return detected
 
 
@@ -59,6 +60,8 @@ parser.add_argument("--ip", default="127.0.0.1",
                         help="Specify the ip address of the main application.")
 parser.add_argument("--distance-threshold", default=5.0, type=float,
                         help="Distance variation threshold to detect presence (in cm/s).")
+parser.add_argument("--verbose", action='store_true',
+                        help="Verbose mode.")
 
 args = parser.parse_args()
 dispatcher = dispatcher.Dispatcher()
@@ -67,6 +70,7 @@ client = udp_client.SimpleUDPClient(args.ip, int(args.send_port))
 server_thread = threading.Thread(target=server.serve_forever)
 
 distance_threshold = args.distance_threshold
+verbose_mode = args.verbose
 
 next_data_requested = False
 start_time = time.time()
