@@ -42,6 +42,7 @@ class NodeSignal:
                 self.presence_detected = False
 
             self.prev_distance = distance
+            self.prev_time = t
             return detected
 
 
