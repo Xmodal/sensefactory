@@ -180,8 +180,7 @@ def record_detect(nid, speed):
         unit = 1 # there is always people outside
     else:
         unit = min(rooms[prevRoomId].getCount(), 1.0) # only add people that exist (or parts of people)
-    print("hello worod")
-#    print("room: {} prev: {} prevcount: {} unit: {}" % roomId, prevRoomId, rooms[prevRoomId].getCount(), unit)
+    print("room: {} prev: {} prevcount: {} unit: {}" % roomId, prevRoomId, rooms[prevRoomId].getCount(), unit)
     rooms[prevRoomId].add(-unit)
     rooms[roomId].add(unit)
     
