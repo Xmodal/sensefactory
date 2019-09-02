@@ -9,45 +9,44 @@ from pythonosc import udp_client
 
 class NodeSignal:
 
-    def __init__(self, nid):
-        self.nid = nid
+    def __init__(self, id, roomId, base_distance):
+        self._id = id
+        self._roomId = roomId
+
         self.prev_distance = None
         self.prev_time = None
-        self.presence_detected = False
 
-    def nid():
-        return self.nid
+        self.base_distance = base_distance * BASE_DISTANCE_THRESHOLD
+
+        self.presence_detected = False
+        self.presence_detection_start_time = 0
+
+    def id(self):
+        return self._id
+
 
     def update(self, t, distance):
-        if self.prev_time == None:
-            self.prev_distance = distance
-            self.prev_time = t
-            return False
+        detected = False
 
-        else:
-            global distance_threshold, verbose_mode
-            detected = False
-
-            delta_time = t - self.prev_time
-            delta_distance = (distance - self.prev_distance) / delta_time    # instantaneous distance variation in cm/sec
-    
-            # If slope is going down : someone is leaving
-            if delta_distance > distance_threshold:
+        # Someone is in front of the sensor.
+        if distance < self.base_distance:
+            if not self.presence_detected:
+                self.presence_detection_start_time = t
                 self.presence_detected = True
 
-            # Slope is not going down but someone had been detected: trigger detection
-            elif self.presence_detected:
-                detected = True
-                self.presence_detected = False
+        # No one is there but someone had been detected: trigger detection
+        elif self.presence_detected != False:
+            detected = 1.0 / (t - self.presence_detection_start_time + 0.000001)
+            # reset
+            self.presence_detected = False
+            self.presence_detection_start_time = 0
 
-            self.prev_distance = distance
-            self.prev_time = t  
-            if verbose_mode:
-                print("Udate nid={} at t={} and distance={}: {} cm/sec (dt={})".format(self.nid, t, distance, delta_distance, delta_time))
-                if detected:
-                    print("*** DETECTED {} ***".format(self.nid))
-            return detected
+        if verbose_mode and self.id() == 8:
+            print("Udate nid={} at t={} and distance={}: speed={}".format(self.id(), t, distance, detected))
+            if detected:
+                print("*** DETECTED {} ***".format(self.id()))
 
+        return detected
 
 # Create parser
 parser = argparse.ArgumentParser()
