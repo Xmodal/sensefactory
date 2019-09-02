@@ -54,7 +54,7 @@ parser.add_argument("--send-port", default="57121",
                         help="Specify the port number to send to the main application.")
 parser.add_argument("--ip", default="127.0.0.1",
                         help="Specify the ip address of the main application.")
-parser.add_argument("--distance_threshold", default=5.0,
+parser.add_argument("--distance-threshold", default=5.0, type=float,
                         help="Distance variation threshold to detect presence (in cm/s).")
 
 args = parser.parse_args()
