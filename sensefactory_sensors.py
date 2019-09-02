@@ -59,7 +59,16 @@ class NodeSignal:
 
         # No one is there but someone had been detected: trigger detection
         elif self.presence_detected != False:
-            detected = 1.0 / (t - self.presence_detection_start_time + 0.000001)
+            presence_duration = (t - self.presence_detection_start_time) / max_presence_duration
+            print(presence_duration)
+            if presence_duration > 1.0:
+                # Stayed too long: abnormal. No detection recorded.
+                print("Abnormality detected: exceeded max duration")
+                detected = False
+
+            else:
+                detected = 1.0 - presence_duration # record speed in [0, 1]
+
             # reset
             self.presence_detected = False
             self.presence_detection_start_time = 0
@@ -80,8 +89,8 @@ parser.add_argument("--send-port", default="57121",
                         help="Specify the port number to send to the main application.")
 parser.add_argument("--ip", default="127.0.0.1",
                         help="Specify the ip address of the main application.")
-parser.add_argument("--distance-threshold", default=5.0, type=float,
-                        help="Distance variation threshold to detect presence (in cm/s).")
+parser.add_argument("--max-presence-duration", default=120.0, type=float,
+                        help="Period of time after which a presence is considered invalid because body is moving way too slow (in seconds). Prevents detection of inflatables.")
 parser.add_argument("--verbose", action='store_true',
                         help="Verbose mode.")
 
@@ -91,7 +100,7 @@ server = osc_server.ThreadingOSCUDPServer(("localhost", int(args.receive_port)),
 client = udp_client.SimpleUDPClient(args.ip, int(args.send_port))
 server_thread = threading.Thread(target=server.serve_forever)
 
-distance_threshold = args.distance_threshold
+max_presence_duration = args.max_presence_duration
 verbose_mode = args.verbose
 
 next_data_requested = False
