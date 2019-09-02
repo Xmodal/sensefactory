@@ -1,0 +1,36 @@
+{
+	"filetype" : "C74Snapshot",
+	"version" : 2,
+	"minorversion" : 0,
+	"name" : "zero ",
+	"origin" : "Mac_quantum_profile",
+	"type" : "patcher",
+	"subtype" : "Undefined",
+	"embed" : 0,
+	"snapshot" : 	{
+		"valuedictionary" : 		{
+			"parameter_values" : 			{
+				"live.numbox" : 0.0,
+				"live.numbox[10]" : 0.0,
+				"live.numbox[11]" : 0.0,
+				"live.numbox[12]" : 0.0,
+				"live.numbox[13]" : 0.0,
+				"live.numbox[14]" : 0.0,
+				"live.numbox[15]" : 0.0,
+				"live.numbox[16]" : 0.0,
+				"live.numbox[1]" : 0.0,
+				"live.numbox[2]" : 0.0,
+				"live.numbox[3]" : 0.0,
+				"live.numbox[4]" : 0.0,
+				"live.numbox[5]" : 0.0,
+				"live.numbox[6]" : 0.0,
+				"live.numbox[7]" : 0.0,
+				"live.numbox[8]" : 0.0,
+				"live.numbox[9]" : 0.0
+			}
+
+		}
+
+	}
+
+}
