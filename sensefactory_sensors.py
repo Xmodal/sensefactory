@@ -127,6 +127,7 @@ def add_node(nodeId, entranceId, roomId, base_distance):
     global node_signals
     node_signals[nodeId] = NodeSignal(nodeId, entranceId, roomId, base_distance)
 
+# Adds a room object.
 def add_room(roomId):
     global rooms
     rooms[roomId] = Room(roomId)
@@ -157,8 +158,8 @@ add_room(3)
 energy = 0.
 ENERGY_STEP = 0.1
 
-# Re-route action to robot.
-def receive_data(unused_addr, nid, distance, strength, integration):
+# OSC Handler: Receive data from sensor.
+def receive_sensor(unused_addr, nid, distance, strength, integration):
     global node_signals, start_time, client
 
     t = time.time() - start_time
@@ -169,9 +170,11 @@ def receive_data(unused_addr, nid, distance, strength, integration):
     if speed:
         record_detect(nid, speed)
 
+# OSC Handler: artificial data reception.
 def test_detect(unused_addr, nid, speed):
     record_detect(nid, speed)
 
+# Helper function: record one detection.
 def record_detect(nid, speed):
     global node_signals, energy
 
@@ -179,7 +182,6 @@ def record_detect(nid, speed):
 
     # Trigger information about detection.
     client.send_message("/sensefactory/sensor/detect", [ node.entranceId(), speed ])
-
 
     # Update counts.
     roomId = node.roomId()
@@ -221,6 +223,7 @@ def send_stats():
     client.send_message("/sensefactory/rooms/counts/normalized", [ norm1, norm2, norm3, totalNorm ])
     client.send_message("/sensefactory/energy/value", [ energy ])
 
+# Main loop thread function.
 def main_loop():
     while True:
         # Send statistics.
@@ -235,10 +238,11 @@ def main_loop():
         
         time.sleep(period)
 
+# Start main loop.
 threading.Thread(target=main_loop).start()
 
-
-dispatcher.map("/minibee/data", receive_data)
+# Assign OSC handlers and start server.
+dispatcher.map("/minibee/data", receive_sensor)
 dispatcher.map("/sensefactory/test/detect", test_detect)
 server_thread.start()
     
