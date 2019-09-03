@@ -214,8 +214,8 @@ def send_stats():
     totalCount = count1 + count2 + count3
 
     norm1 = min(count1 / MAX_COUNT_ROOM, 1.)
-    norm2 = min(count1 / MAX_COUNT_ROOM, 1.)
-    norm3 = min(count1 / MAX_COUNT_ROOM, 1.)
+    norm2 = min(count2 / MAX_COUNT_ROOM, 1.)
+    norm3 = min(count3 / MAX_COUNT_ROOM, 1.)
     totalNorm = min(totalCount / MAX_COUNT_TOTAL, 1.)
     client.send_message("/sensefactory/rooms/counts/raw", [ count1, count2, count3, totalCount ])
     client.send_message("/sensefactory/rooms/counts/normalized", [ norm1, norm2, norm3, totalNorm ])
