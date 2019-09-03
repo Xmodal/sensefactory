@@ -13,7 +13,8 @@ In PydonGui use configuration file: SenseFactory_minibee/sensefactory.xml
 Requirements: Python 3 (brew install python3)
 
 Dependencies:
- * python-osc (pip3 install python-osc) ## OSC Messages
+pip3 install python-osc numpy matplotlib sklearn
+
  
  ## OSC Messages
 
