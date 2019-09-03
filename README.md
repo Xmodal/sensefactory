@@ -14,11 +14,13 @@ Requirements: Python 3 (brew install python3)
 
 Dependencies:
  * python-osc (pip3 install python-osc) ## OSC Messages
+ 
  ## OSC Messages
 
- | Address  | Types | Arguments | Description |
- | /sensefactory/sensor/detect  | if | entranceId speed | Event sent when someone crosses a sensor |
- | /sensefactory/rooms/counts/raw  | ffff | count1 count2 count3 totalCount | Estimate counts of number of people of each room + total |
- | /sensefactory/rooms/counts/normalized  | ffff | norm1 norm2 norm3 totalNorm | Estimate normalized counts in [0, 1] |
- | /sensefactory/energy/value  | f | energy | Accumulated energy of the system in [0, 1]. Bursts when reaches 1. |
- | /sensefactory/energy/burst  |  |  | Event sent when energy reaches 1 |
+| Address  | Types | Arguments | Description |
+| -------  | ----- | --------- | ----------- |
+| /sensefactory/sensor/detect  | if | entranceId speed | Event sent when someone crosses a sensor |
+| /sensefactory/rooms/counts/raw  | ffff | count1 count2 count3 totalCount | Estimate counts of number of people of each room + total |
+| /sensefactory/rooms/counts/normalized  | ffff | norm1 norm2 norm3 totalNorm | Estimate normalized counts in [0, 1] |
+| /sensefactory/energy/value  | f | energy | Accumulated energy of the system in [0, 1]. Bursts when reaches 1. |
+| /sensefactory/energy/burst  |  |  | Event sent when energy reaches 1 |
