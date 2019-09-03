@@ -165,6 +165,7 @@ def test_detect(unused_addr, nid, speed):
     record_detect(nid, speed)
 
 def record_detect(nid, speed):
+    global node_signals
     # Trigger information about detection.
     client.send_message("/sensefactory/sensor/detect", [ nid, speed ])
 
@@ -180,7 +181,7 @@ def record_detect(nid, speed):
         unit = 1 # there is always people outside
     else:
         unit = min(rooms[prevRoomId].getCount(), 1.0) # only add people that exist (or parts of people)
-    print("room: {} prev: {} prevcount: {} unit: {}" % roomId, prevRoomId, rooms[prevRoomId].getCount(), unit)
+    print("room: {} prev: {} prevcount: {} unit: {}".format(roomId, prevRoomId, rooms[prevRoomId].getCount(), unit))
     rooms[prevRoomId].add(-unit)
     rooms[roomId].add(unit)
     
