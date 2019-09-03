@@ -7,8 +7,12 @@ from pythonosc import osc_server
 from pythonosc import osc_message_builder
 from pythonosc import udp_client
 
+BASE_DISTANCE_THRESHOLD = 0.9
+
+# Max. number of people in the installation.
 MAX_COUNT_ROOM = 10.
 MAX_COUNT_TOTAL = 30.
+
 class Room:
     def __init__(self, id):
         self._id = id
@@ -28,7 +32,6 @@ class Room:
     def add(self, count):
         self.setCount(self.count + count)
 
-BASE_DISTANCE_THRESHOLD = 0.9
 
 class NodeSignal:
 
