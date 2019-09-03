@@ -19,6 +19,33 @@ BASE_DISTANCE_THRESHOLD = 0.9
 MAX_COUNT_ROOM = 10.
 MAX_COUNT_TOTAL = 30.
 
+# class Agent:
+#     SLEEPING = 0
+#     ACTIVE = 1
+#     CURIOUS = 2
+
+#     def __init__(self):
+#         self.state = SLEEPING
+#         pass
+
+#     def step(self, t):
+#         if self.state == SLEEPING:
+#             # slow constant breathing
+
+
+
+#         elif self.state == ACTIVE:
+#             # random walk in oscillations
+
+
+
+#         else: # curious
+#             # one light "looking"
+
+
+#     def trigger(self, t):
+#         pass
+
 class Room:
     def __init__(self, id):
         self._id = id
@@ -148,13 +175,13 @@ def add_room(roomId):
     rooms[roomId] = Room(roomId)
 
 # Create all nodes.
-add_node(8, 1, 1, 266)
-add_node(2, 2, 1, 1084) # to verify
-add_node(3, 3, 2, 82)
-add_node(4, 4, 2, 408)
+add_node(8, 1, 1, 118)
+add_node(2, 2, 1, 1084)
+add_node(3, 3, 2, 143)
+add_node(4, 4, 2, 50)
 
-add_node(5, 5, 3, 96)
-add_node(6, 6, 3, 130)
+add_node(5, 5, 3, 101)
+add_node(6, 6, 3, 149)
 
 add_node(7, 7, 0, 140)
 
@@ -256,6 +283,7 @@ def get_signals_counts_normalized():
 
     return counts
 
+
 # Computes and sends basic statistics.
 def send_stats():
     global energy, dataset
@@ -263,56 +291,58 @@ def send_stats():
     data_row = []
 
     counts = get_rooms_counts_raw()
-    norm_counts = get_rooms_counts_normalized(counts)
-    norm_signal_counts = get_signals_counts_normalized()
+    normCounts = get_rooms_counts_normalized(counts)
 
     client.send_message("/sensefactory/rooms/counts/raw", counts)
-    client.send_message("/sensefactory/rooms/counts/normalized", norm_counts)
-    client.send_message("/sensefactory/sensors/counts/normalized", norm_signal_counts)
+    client.send_message("/sensefactory/rooms/counts/normalized", normCounts)
     client.send_message("/sensefactory/energy/value", [ energy ])
-    client.send_message("/datasetsize", [ len(dataset) ])
+
+    normSignalCounts = get_signals_counts_normalized()
 
     data_row += counts
-    data_row += norm_counts
-    data_row += norm_signal_counts
-    # data_row.append(energy) # don't add energy as it is not very much predictible according to the rest
-
-    # Process state
-    manifold_data = manifold_transform(np.asarray(data_row)).tolist()
-    client.send_message("/sensefactory/manifold/raw", manifold_data )
+    data_row += normCounts
+    data_row += normSignalCounts
+    data_row.append(energy)
 
     dataset.append(data_row)
 
-manifold_dim = 2
-manifold_model = None
-manifold_n_neighbors = 30
-manifold_min_samples = 200
-manifold_max_samples = 5000
+def train_tsne():
+    global dataset
 
+    # data = np.asarray(dataset)
+    # data = data[-100000:]
+    data = np.random.rand(1000, 16)
+    print(data.shape)
+    # t-SNE embedding of the digits dataset
+    print("Computing t-SNE embedding")
+    t0 = time.time()
+    tsne = manifold.TSNE(n_components=2, init='pca', random_state=0)
+    tsne.fit_transform(data)
+    print("Time: %.2fs)" % (time.time() - t0))
+    return tsne
+    # data_tsne = tsne.fit_transform(data)
+    # print("Computing done: display")
 
-def manifold_transform(x):
-    global manifold_model
-    if manifold_model == None:
-        return np.zeros(manifold_dim)
-    else:
-        return manifold_model.transform(x.reshape(1, -1))[0]
+    # plot_embedding(data_tsne,
+    #            "t-SNE embedding of the digits (time %.2fs)" %
+    #            (time.time() - t0))
 
-def manifold_train_isomap():
-    if len(dataset) < manifold_min_samples:
-        return None
-    else:
-        data = np.asarray(dataset)
-        n_samples = len(dataset)
-        if n_samples > manifold_max_samples:
-            subsampling_step = int(n_samples / manifold_max_samples)
-            data = data[::subsampling_step]
-        data = data[-manifold_max_samples:]
-        print("====== retraining ======")
-        print(data.shape)
-        # Isomap projection of the dataset
-        model = manifold.Isomap(manifold_n_neighbors, n_components=manifold_dim)
-        model.fit_transform(data)
-        return model
+def train_lle():
+    global dataset
+    n_neighbors = 30
+
+    data = np.asarray(dataset)
+    data = data[-100000:]
+    print(data.shape)
+    # t-SNE embedding of the digits dataset
+    print("Computing LLE embedding")
+    t0 = time.time()
+    clf = manifold.LocallyLinearEmbedding(n_neighbors, n_components=2,
+                                          method='dense')
+    X_hlle = clf.fit_transform(data)
+    print("Time: %.2fs)" % (time.time() - t0))
+    print("Done. Reconstruction error: %g" % clf.reconstruction_error_)
+    return clf
 
 # ----------------------------------------------------------------------
 # Scale and visualize the embedding vectors
@@ -360,61 +390,12 @@ def main_loop():
         
         time.sleep(period)
 
-def manifold_loop():
-    global manifold_model
-    while len(dataset) < manifold_min_samples:
-        continue
-    while True:
-        manifold_model = manifold_train_isomap()
-        time.sleep(60.0)
-
-
 # Start main loop.
 threading.Thread(target=main_loop).start()
-threading.Thread(target=manifold_loop).start()
 
 # Assign OSC handlers and start server.
 dispatcher.map("/minibee/data", receive_sensor)
 dispatcher.map("/sensefactory/test/detect", test_detect)
 server_thread.start()
 
-#
-#
-# def train_tsne():
-#     global dataset
-#
-#     # data = np.asarray(dataset)
-#     # data = data[-100000:]
-#     data = np.random.rand(1000, 16)
-#     print(data.shape)
-#     # t-SNE embedding of the digits dataset
-#     print("Computing t-SNE embedding")
-#     t0 = time.time()
-#     tsne = manifold.TSNE(n_components=2, init='pca', random_state=0)
-#     tsne.fit_transform(data)
-#     print("Time: %.2fs)" % (time.time() - t0))
-#     return tsne
-#     # data_tsne = tsne.fit_transform(data)
-#     # print("Computing done: display")
-#
-#     # plot_embedding(data_tsne,
-#     #            "t-SNE embedding of the digits (time %.2fs)" %
-#     #            (time.time() - t0))
-#
-# def train_lle():
-#     global dataset
-#     n_neighbors = 30
-#
-#     data = np.asarray(dataset)
-#     data = data[-100000:]
-#     data = np.random.rand(1000, 16)
-#     print(data.shape)
-#     # t-SNE embedding of the digits dataset
-#     print("Computing LLE embedding")
-#     t0 = time.time()
-#     clf = manifold.LocallyLinearEmbedding(n_neighbors, n_components=2,
-#                                           method='ltsa')
-#     X_hlle = clf.fit_transform(data)
-#     print("Time: %.2fs)" % (time.time() - t0))
-#     print("Done. Reconstruction error: %g" % clf.reconstruction_error_)
-#     return clf
+train_lle()

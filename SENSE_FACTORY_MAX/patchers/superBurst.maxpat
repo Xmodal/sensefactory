@@ -122,7 +122,7 @@
 					"numinlets" : 0,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 381.0, 36.0, 30.0, 30.0 ]
+					"patching_rect" : [ 381.0, 6.0, 30.0, 30.0 ]
 				}
 
 			}
@@ -135,7 +135,7 @@
 					"numinlets" : 0,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 344.0, 36.0, 30.0, 30.0 ]
+					"patching_rect" : [ 344.0, 6.0, 30.0, 30.0 ]
 				}
 
 			}
@@ -148,7 +148,7 @@
 					"numinlets" : 0,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 306.0, 36.0, 30.0, 30.0 ]
+					"patching_rect" : [ 306.0, 6.0, 30.0, 30.0 ]
 				}
 
 			}
@@ -161,7 +161,7 @@
 					"numinlets" : 0,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 267.0, 36.0, 30.0, 30.0 ]
+					"patching_rect" : [ 267.0, 6.0, 30.0, 30.0 ]
 				}
 
 			}
@@ -348,14 +348,14 @@
 					"presentation_rect" : [ 6.0, 3.942993000000001, 66.0, 19.000001999999999 ],
 					"saved_attribute_attributes" : 					{
 						"valueof" : 						{
-							"parameter_shortname" : "trig",
-							"parameter_enum" : [ "val1", "val2" ],
-							"parameter_defer" : 1,
-							"parameter_type" : 2,
 							"parameter_longname" : "trig",
 							"parameter_initial_enable" : 1,
 							"parameter_mmax" : 1,
-							"parameter_initial" : [ 0.0 ]
+							"parameter_initial" : [ 0.0 ],
+							"parameter_shortname" : "trig",
+							"parameter_enum" : [ "val1", "val2" ],
+							"parameter_defer" : 1,
+							"parameter_type" : 2
 						}
 
 					}
@@ -374,7 +374,7 @@
 					"numinlets" : 6,
 					"numoutlets" : 6,
 					"outlettype" : [ "", "", "", "", "", "" ],
-					"patching_rect" : [ 229.0, 75.0, 215.0, 22.0 ],
+					"patching_rect" : [ 229.0, 45.0, 215.0, 22.0 ],
 					"text" : "route trig attack sustain decay intensity"
 				}
 
@@ -388,7 +388,7 @@
 					"numinlets" : 0,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 229.0, 36.0, 30.0, 30.0 ]
+					"patching_rect" : [ 229.0, 6.0, 30.0, 30.0 ]
 				}
 
 			}
