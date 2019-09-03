@@ -171,10 +171,12 @@ def test_detect(unused_addr, nid, speed):
 
 def record_detect(nid, speed):
     global node_signals
-    # Trigger information about detection.
-    client.send_message("/sensefactory/sensor/detect", [ nid, speed ])
 
     node = node_signals[nid]
+
+    # Trigger information about detection.
+    client.send_message("/sensefactory/sensor/detect", [ node.entranceId(), speed ])
+
 
     # Update counts.
     roomId = node.roomId()
