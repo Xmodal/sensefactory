@@ -7,6 +7,8 @@ from pythonosc import osc_server
 from pythonosc import osc_message_builder
 from pythonosc import udp_client
 
+MAX_COUNT_ROOM = 10.
+MAX_COUNT_TOTAL = 30.
 class Room:
     def __init__(self, id):
         self._id = id
@@ -189,8 +191,17 @@ def record_detect(nid, speed):
 
 
 def send_stats():
-    totalCount = rooms[1].getCount() + rooms[2].getCount() + rooms[3].getCount()
-    client.send_message("/sensefactory/rooms/counts", [ rooms[1].getCount(), rooms[2].getCount(), rooms[3].getCount(), totalCount ])
+    count1 = rooms[1].getCount()
+    count2 = rooms[2].getCount()
+    count3 = rooms[3].getCount()
+    totalCount = count1 + count2 + count3
+
+    norm1 = min(count1 / MAX_COUNT_ROOM, 1.)
+    norm2 = min(count1 / MAX_COUNT_ROOM, 1.)
+    norm3 = min(count1 / MAX_COUNT_ROOM, 1.)
+    totalNorm = min(totalCount / MAX_COUNT_TOTAL, 1.)
+    client.send_message("/sensefactory/rooms/counts/raw", [ count1, count2, count3, totalCount ])
+    client.send_message("/sensefactory/rooms/counts/normalized", [ norm1, norm2, norm3, totalNorm ])
 
 def main_loop():
     while True:
