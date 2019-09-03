@@ -10,7 +10,7 @@
 		}
 ,
 		"classnamespace" : "box",
-		"rect" : [ 634.0, 242.0, 640.0, 480.0 ],
+		"rect" : [ 553.0, 87.0, 640.0, 480.0 ],
 		"bglocked" : 0,
 		"openinpresentation" : 0,
 		"default_fontsize" : 12.0,
@@ -157,13 +157,13 @@
 			}
  ],
 		"parameters" : 		{
-			"obj-10::obj-41" : [ "live.toggle", "live.toggle", 0 ],
-			"obj-10::obj-10" : [ "SHUTDOWN[1]", "SHUTDOWN", 0 ],
 			"obj-10::obj-17" : [ "Refresh[1]", "Refresh", 0 ],
-			"obj-10::obj-98" : [ "Refresh", "Refresh", 0 ],
-			"obj-10::obj-35" : [ "live.numbox[1]", "live.numbox", 0 ],
 			"obj-10::obj-18" : [ "SHUTDOWN", "SHUTDOWN", 0 ],
 			"obj-10::obj-27" : [ "live.numbox", "live.numbox", 0 ],
+			"obj-10::obj-10" : [ "SHUTDOWN[1]", "SHUTDOWN", 0 ],
+			"obj-10::obj-41" : [ "live.toggle", "live.toggle", 0 ],
+			"obj-10::obj-98" : [ "Refresh", "Refresh", 0 ],
+			"obj-10::obj-35" : [ "live.numbox[1]", "live.numbox", 0 ],
 			"parameterbanks" : 			{
 
 			}
@@ -172,8 +172,8 @@
 ,
 		"dependency_cache" : [ 			{
 				"name" : "enttecDmxUsbPro.maxpat",
-				"bootpath" : "~/Dropbox/Max/patchers/sound2light",
-				"patcherrelativepath" : "../../../../../Max/patchers/sound2light",
+				"bootpath" : "~/Documents/GitHub/sensefactory/SENSE_FACTORY_MAX/patchers",
+				"patcherrelativepath" : ".",
 				"type" : "JSON",
 				"implicit" : 1
 			}
