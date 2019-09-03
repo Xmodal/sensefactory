@@ -95,6 +95,7 @@ class NodeSignal:
             self.presence_detected = False
             self.presence_detection_start_time = 0
 
+
         if verbose_mode:
             print("Udate nid={} at t={} and distance={}: speed={}".format(self.nodeId(), t, distance, detected))
             if detected:
@@ -141,6 +142,7 @@ def add_node(nodeId, entranceId, roomId, base_distance):
     global node_signals
     node_signals[nodeId] = NodeSignal(nodeId, entranceId, roomId, base_distance)
 
+# Adds a room object.
 def add_room(roomId):
     global rooms
     rooms[roomId] = Room(roomId)
@@ -171,9 +173,9 @@ add_room(3)
 energy = 0.
 ENERGY_STEP = 0.1
 
-# Re-route action to robot.
-def receive_data(unused_addr, nid, distance, strength, integration):
-    global node_signals, start_time, client
+# OSC Handler: Receive data from sensor.
+def receive_sensor(unused_addr, nid, distance, strength, integration):
+    global node_signals, start_time, client, last_detection_time
 
     t = time.time() - start_time
 
@@ -183,9 +185,11 @@ def receive_data(unused_addr, nid, distance, strength, integration):
     if speed:
         record_detect(nid, speed)
 
+# OSC Handler: artificial data reception.
 def test_detect(unused_addr, nid, speed):
     record_detect(nid, speed)
 
+# Helper function: record one detection.
 def record_detect(nid, speed):
     global node_signals, energy
 
@@ -194,7 +198,6 @@ def record_detect(nid, speed):
 
     # Trigger information about detection.
     client.send_message("/sensefactory/sensor/detect", [ node.entranceId(), speed ])
-
 
     # Update counts.
     roomId = node.roomId()
