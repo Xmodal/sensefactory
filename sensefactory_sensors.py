@@ -270,7 +270,7 @@ def send_stats():
     client.send_message("/sensefactory/rooms/counts/normalized", norm_counts)
     client.send_message("/sensefactory/sensors/counts/normalized", norm_signal_counts)
     client.send_message("/sensefactory/energy/value", [ energy ])
-    client.send_message("/datasetsize", [ len(dataset) ])
+    # client.send_message("/datasetsize", [ len(dataset) ])
 
     data_row += counts
     data_row += norm_counts
@@ -279,7 +279,7 @@ def send_stats():
 
     # Process state
     manifold_data = manifold_transform(np.asarray(data_row)).tolist()
-    client.send_message("/sensefactory/manifold/raw", manifold_data )
+    client.send_message("/sensefactory/supersenses/raw", manifold_data )
 
     dataset.append(data_row)
 
