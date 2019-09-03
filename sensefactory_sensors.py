@@ -146,15 +146,15 @@ def add_room(roomId):
     rooms[roomId] = Room(roomId)
 
 # Create all nodes.
-add_node(8, 1, 1, 146)
-add_node(2, 2, 1, 1084)
-add_node(3, 3, 2, 140)
-add_node(4, 4, 2, 50)
+add_node(8, 1, 1, 266)
+add_node(2, 2, 1, 1084) # to verify
+add_node(3, 3, 2, 82)
+add_node(4, 4, 2, 408)
 
-add_node(5, 5, 3, 65535)
-add_node(6, 6, 3, 65535)
+add_node(5, 5, 3, 96)
+add_node(6, 6, 3, 130)
 
-add_node(7, 7, 0, 65535)
+add_node(7, 7, 0, 140)
 
 #add_node(8, 8, 0, 65535) # dummy
 
