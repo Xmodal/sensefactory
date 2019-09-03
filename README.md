@@ -14,6 +14,7 @@ Requirements: Python 3 (brew install python3)
 
 Dependencies:
  * python-osc (pip3 install python-osc) ## OSC Messages
+ ## OSC Messages
 
  | Address  | Types | Arguments | Description |
  | /sensefactory/sensor/detect  | if | entranceId speed | Event sent when someone crosses a sensor |
