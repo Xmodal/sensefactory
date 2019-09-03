@@ -154,6 +154,9 @@ add_room(1)
 add_room(2)
 add_room(3)
 
+energy = 0.
+ENERGY_STEP = 0.1
+
 # Re-route action to robot.
 def receive_data(unused_addr, nid, distance, strength, integration):
     global node_signals, start_time, client
@@ -170,7 +173,7 @@ def test_detect(unused_addr, nid, speed):
     record_detect(nid, speed)
 
 def record_detect(nid, speed):
-    global node_signals
+    global node_signals, energy
 
     node = node_signals[nid]
 
@@ -191,22 +194,32 @@ def record_detect(nid, speed):
     print("room: {} prev: {} prevcount: {} unit: {}".format(roomId, prevRoomId, rooms[prevRoomId].getCount(), unit))
     rooms[prevRoomId].add(-unit)
     rooms[roomId].add(unit)
+
+    # Update energy.
+    energy += speed * ENERGY_STEP
+    print("energy: {}".format(energy))
+    if energy >= 1.0:
+        client.send_message("/sensefactory/energy/burst", [])
+        energy = 0.
     
     send_stats()
 
-
+     
 def send_stats():
+    global energy
+
     count1 = rooms[1].getCount()
     count2 = rooms[2].getCount()
     count3 = rooms[3].getCount()
     totalCount = count1 + count2 + count3
 
     norm1 = min(count1 / MAX_COUNT_ROOM, 1.)
-    norm2 = min(count1 / MAX_COUNT_ROOM, 1.)
-    norm3 = min(count1 / MAX_COUNT_ROOM, 1.)
+    norm2 = min(count2 / MAX_COUNT_ROOM, 1.)
+    norm3 = min(count3 / MAX_COUNT_ROOM, 1.)
     totalNorm = min(totalCount / MAX_COUNT_TOTAL, 1.)
     client.send_message("/sensefactory/rooms/counts/raw", [ count1, count2, count3, totalCount ])
     client.send_message("/sensefactory/rooms/counts/normalized", [ norm1, norm2, norm3, totalNorm ])
+    client.send_message("/sensefactory/energy/value", [ energy ])
 
 def main_loop():
     while True:
