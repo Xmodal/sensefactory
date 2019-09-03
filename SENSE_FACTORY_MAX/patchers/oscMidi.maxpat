@@ -39,13 +39,36 @@
 		"subpatcher_template" : "",
 		"boxes" : [ 			{
 				"box" : 				{
-					"id" : "obj-14",
-					"maxclass" : "message",
-					"numinlets" : 2,
+					"id" : "obj-17",
+					"maxclass" : "newobj",
+					"numinlets" : 1,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 460.0, 388.0, 50.0, 22.0 ],
-					"text" : "127"
+					"patching_rect" : [ 283.0, 415.0, 175.0, 22.0 ],
+					"text" : "prepend /sensefactory/midi/raw"
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-16",
+					"maxclass" : "newobj",
+					"numinlets" : 1,
+					"numoutlets" : 1,
+					"outlettype" : [ "" ],
+					"patching_rect" : [ 393.0, 321.0, 173.0, 22.0 ],
+					"text" : "prepend /sensefactory/midi/CC"
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-14",
+					"maxclass" : "newobj",
+					"numinlets" : 1,
+					"numoutlets" : 0,
+					"patching_rect" : [ 283.0, 447.0, 164.0, 22.0 ],
+					"text" : "udpsend 172.16.6.118 57127"
 				}
 
 			}
@@ -427,7 +450,7 @@
 					"numinlets" : 4,
 					"numoutlets" : 4,
 					"outlettype" : [ "", "", "", "" ],
-					"patching_rect" : [ 83.0, 211.5, 406.0, 22.0 ],
+					"patching_rect" : [ 83.0, 263.5, 406.0, 22.0 ],
 					"text" : "route /sensefactory/midi/note /sensefactory/midi/CC /sensefactory/midi/raw"
 				}
 
@@ -479,8 +502,16 @@
 			}
 , 			{
 				"patchline" : 				{
+					"destination" : [ "obj-17", 0 ],
+					"order" : 0,
+					"source" : [ "obj-13", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
 					"destination" : [ "obj-3", 0 ],
-					"order" : 1,
+					"order" : 2,
 					"source" : [ "obj-13", 0 ]
 				}
 
@@ -488,8 +519,15 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-7", 0 ],
-					"order" : 0,
+					"order" : 1,
 					"source" : [ "obj-13", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-14", 0 ],
+					"source" : [ "obj-17", 0 ]
 				}
 
 			}
@@ -509,16 +547,7 @@
 			}
 , 			{
 				"patchline" : 				{
-					"destination" : [ "obj-14", 1 ],
-					"order" : 0,
-					"source" : [ "obj-2", 2 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
 					"destination" : [ "obj-3", 0 ],
-					"order" : 1,
 					"source" : [ "obj-2", 2 ]
 				}
 

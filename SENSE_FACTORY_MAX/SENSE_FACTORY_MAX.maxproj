@@ -2,7 +2,7 @@
 	"name" : "SENSE_FACTORY_MAX",
 	"version" : 1,
 	"creationdate" : 3643381600,
-	"modificationdate" : 3650353637,
+	"modificationdate" : 3650371639,
 	"viewrect" : [ 25.0, 70.0, 300.0, 642.0 ],
 	"autoorganize" : 1,
 	"hideprojectwindow" : 0,
@@ -52,6 +52,11 @@
 			}
 ,
 			"oscMidi.maxpat" : 			{
+				"kind" : "patcher",
+				"local" : 1
+			}
+,
+			"ultraCycle.maxpat" : 			{
 				"kind" : "patcher",
 				"local" : 1
 			}
