@@ -2,7 +2,7 @@
 	"name" : "SENSE_FACTORY_MAX",
 	"version" : 1,
 	"creationdate" : 3643381600,
-	"modificationdate" : 3650391940,
+	"modificationdate" : 3650396907,
 	"viewrect" : [ 1.0, 45.0, 300.0, 642.0 ],
 	"autoorganize" : 1,
 	"hideprojectwindow" : 0,
@@ -27,6 +27,11 @@
 			}
 ,
 			"superBurst.maxpat" : 			{
+				"kind" : "patcher",
+				"local" : 1
+			}
+,
+			"sensorRandom.maxpat" : 			{
 				"kind" : "patcher",
 				"local" : 1
 			}
@@ -61,7 +66,12 @@
 				"local" : 1
 			}
 ,
-			"sensorRandom.maxpat" : 			{
+			"bauhausRandom.maxpat" : 			{
+				"kind" : "patcher",
+				"local" : 1
+			}
+,
+			"whiteRGB.maxpat" : 			{
 				"kind" : "patcher",
 				"local" : 1
 			}
