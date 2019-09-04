@@ -25,6 +25,7 @@ pip3 install python-osc numpy matplotlib sklearn
 | /sensefactory/rooms/counts/normalized  | ffff | norm1 norm2 norm3 totalNorm | Estimate normalized counts in [0, 1] |
 | /sensefactory/energy/value  | f | energy | Accumulated energy of the system in [0, 1]. Bursts when reaches 1. |
 | /sensefactory/energy/burst  |  |  | Event sent when energy reaches 1 |
-| /sensefactory/sensors/counts/normalized  | fffffff |  | Individual count of each sensor (normalized) |
-| /sensefactory/supersenses/raw  | ff |  | Value of current state with reduced dimensionality |
-
+| /sensefactory/sensors/counts/normalized  | fffffff | count1 ... count7 | Individual count of each sensor (normalized) |
+| /sensefactory/sensors/speeds/normalized | fffffff | speed1 ... speed7 | Individual average speed of each sensor |
+| /sensefactory/supersenses/raw  | ff | dim1 dim2 | Value of current state with reduced dimensionality |
+| /sensefactory/entity | iff | id frequency_Hz intensity | Control of oscillator lamp in 'entities')|
