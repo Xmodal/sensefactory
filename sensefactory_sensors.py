@@ -55,6 +55,7 @@ class NodeSignal:
         self.presence_detection_start_time = 0
 
         self.count = 0.0
+        self.total_speed = 0.0 # used to compute average speed
 
     def nodeId(self):
         return self._nodeId
@@ -68,8 +69,15 @@ class NodeSignal:
     def getCount(self):
         return self.count
 
-    def triggerDetect(self):
+    def getAverageSpeed(self):
+        if self.count == 0:
+            return 0
+        else:
+            return self.total_speed / self.count
+
+    def triggerDetect(self, speed):
         self.count += 1
+        self.total_speed += speed
 
     def update(self, t, distance):
         detected = False
@@ -194,7 +202,7 @@ def record_detect(nid, speed):
     global node_signals, energy
 
     node = node_signals[nid]
-    node.triggerDetect();
+    node.triggerDetect(speed)
 
     # Trigger information about detection.
     client.send_message("/sensefactory/sensor/detect", [ node.entranceId(), speed ])
@@ -259,6 +267,12 @@ def get_signals_counts_normalized():
 
     return counts
 
+def get_signals_speeds_normalized():
+    speeds = []
+    for i, n in node_signals.items():
+        speeds.append(n.getAverageSpeed())
+    return speeds
+
 # Computes and sends basic statistics.
 def send_stats():
     global energy, dataset
@@ -268,11 +282,12 @@ def send_stats():
     counts = get_rooms_counts_raw()
     norm_counts = get_rooms_counts_normalized(counts)
     norm_signal_counts = get_signals_counts_normalized()
-
+    norm_signal_speeds = get_signals_speeds_normalized()
 
     data_row += counts
     data_row += norm_counts
     data_row += norm_signal_counts
+    data_row += norm_signal_speeds
     # data_row.append(energy) # don't add energy as it is not very much predictible according to the rest
 
     # Send manifold "supersense" data.
@@ -282,6 +297,7 @@ def send_stats():
     client.send_message("/sensefactory/rooms/counts/raw", counts)
     client.send_message("/sensefactory/rooms/counts/normalized", norm_counts)
     client.send_message("/sensefactory/sensors/counts/normalized", norm_signal_counts)
+    client.send_message("/sensefactory/sensors/speeds/normalized", norm_signal_speeds)
     client.send_message("/sensefactory/energy/value", [ energy ])
     # client.send_message("/datasetsize", [ len(dataset) ])
     client.send_message("/sensefactory/supersenses/raw", manifold_data )
