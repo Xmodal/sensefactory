@@ -234,9 +234,13 @@ def record_detect(t, nid, speed):
     # Check if we need to trigger the curious agent.
     entranceId = node.entranceId()
     if entranceId == 1:
-        curious_agent.trigger(t, CuriousAgent.RIGHT)
+        curious_agent1.trigger(t, CuriousAgent.RIGHT)
     elif entranceId == 2:
-        curious_agent.trigger(t, CuriousAgent.LEFT)
+        curious_agent1.trigger(t, CuriousAgent.LEFT)
+    elif entranceId == 3:
+        curious_agent2.trigger(t, CuriousAgent.LEFT)
+    elif entranceId == 4:
+        curious_agent2.trigger(t, CuriousAgent.RIGHT)
 
     # Update energy.
     energy += speed * ENERGY_STEP
@@ -422,9 +426,9 @@ class CuriousAgent:
     state = 0
     entering = False
 
-    def __init__(self):
-        self.lightL = EntityLight(1)
-        self.lightR = EntityLight(2)
+    def __init__(self, leftLightId, rightLightId):
+        self.lightL = EntityLight(leftLightId)
+        self.lightR = EntityLight(rightLightId)
         self.stateEndTime = 0
         self.nextState(self.SLEEPING)
         self.triggered = False
@@ -441,15 +445,16 @@ class CuriousAgent:
                 if verbose_mode:
                     print("Curious agent: entering sleeping state")
                 self.stateEndTime = t + random.uniform(10.0, 30.0)
-                self.lightL.update(0.5, 0.4)
-                self.lightR.update(0.5, 0.4)
+                self.lightL.update(0.1, 0.4)
+                self.lightR.update(0.1, 0.4)
                 self.entering = False
                 # self.triggered = False
 
             if self.triggered:
-                self.triggered = False
                 if random.random() < 0.5:
                     self.nextState(self.CURIOUS)
+                else:
+                    self.triggered = False
             elif t > self.stateEndTime:
                 self.nextState(self.ACTIVE)
 
@@ -459,8 +464,8 @@ class CuriousAgent:
                 if verbose_mode:
                     print("Curious agent: entering active state")
                 self.stateEndTime = t + random.uniform(10.0, 30.0)
-                self.lightL.setIntensity(1.0)
-                self.lightR.setIntensity(1.0)
+                self.lightL.setIntensity(0.3)
+                self.lightR.setIntensity(0.3)
                 self.entering = False
                 # self.triggered = False
             else:
@@ -477,14 +482,14 @@ class CuriousAgent:
             if self.entering:
                 if verbose_mode:
                     print("Curious agent: entering curious state")
-                self.stateEndTime = t + random.uniform(3.0, 6.0)
+                self.stateEndTime = t + random.uniform(2.0, 4.0)
                 if self.triggered == self.LEFT:
                     lookingLight = self.lightL
                     closedLight = self.lightR
                 else:
                     lookingLight = self.lightR
                     closedLight = self.lightL
-                lookingLight.update(1, 10)  # blink fast
+                lookingLight.update(1.0, random.uniform(8, 10)) # fast
                 closedLight.update(0, 1)  # dark
                 self.triggered = False
                 self.entering = False
@@ -505,13 +510,15 @@ class CuriousAgent:
         self.triggered = side
 
 
-curious_agent = CuriousAgent()
+curious_agent1 = CuriousAgent(1, 2)
+curious_agent2 = CuriousAgent(4, 3)
 
 
 def entities_loop():
     while True:
         t = time.time() - start_time
-        curious_agent.step(t)
+        curious_agent1.step(t)
+        curious_agent2.step(t)
         time.sleep(0.1)
 
 
