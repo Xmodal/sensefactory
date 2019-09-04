@@ -1,6 +1,7 @@
 import argparse
 import time
 import threading
+import random
 
 from pythonosc import dispatcher
 from pythonosc import osc_server
@@ -10,14 +11,14 @@ from pythonosc import udp_client
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import offsetbox
-from sklearn import (manifold, datasets, decomposition, ensemble,
-                     discriminant_analysis, random_projection, neighbors)
+from sklearn import (manifold, preprocessing)
 
 BASE_DISTANCE_THRESHOLD = 0.9
 
 # Max. number of people in the installation.
 MAX_COUNT_ROOM = 10.
 MAX_COUNT_TOTAL = 30.
+
 
 class Room:
     def __init__(self, id):
@@ -55,6 +56,7 @@ class NodeSignal:
         self.presence_detection_start_time = 0
 
         self.count = 0.0
+        self.total_speed = 0.0  # used to compute average speed
 
     def nodeId(self):
         return self._nodeId
@@ -68,8 +70,15 @@ class NodeSignal:
     def getCount(self):
         return self.count
 
-    def triggerDetect(self):
+    def getAverageSpeed(self):
+        if self.count == 0:
+            return 0
+        else:
+            return self.total_speed / self.count
+
+    def triggerDetect(self, speed):
         self.count += 1
+        self.total_speed += speed
 
     def update(self, t, distance):
         detected = False
@@ -89,42 +98,42 @@ class NodeSignal:
                 detected = False
 
             else:
-                detected = 1.0 - min(presence_duration / max_presence_duration, 1.0) # record speed in [0, 1]
+                detected = 1.0 - min(presence_duration / max_presence_duration, 1.0)  # record speed in [0, 1]
 
             # reset
             self.presence_detected = False
             self.presence_detection_start_time = 0
-
 
         if verbose_mode:
             print("Udate nid={} at t={} and distance={}: speed={}".format(self.nodeId(), t, distance, detected))
             if detected:
                 print("*** DETECTED {} ***".format(self.nodeId()))
 
-        return detected 
+        return detected
 
-# Create parser
+    # Create parser
+
+
 parser = argparse.ArgumentParser()
 
 parser.add_argument("--receive-port", default="57120",
-                        help="Specify the port number where data is received from the minibees.")
+                    help="Specify the port number where data is received from the minibees.")
 parser.add_argument("--send-port", default="57121",
-                        help="Specify the port number to send to the main application.")
+                    help="Specify the port number to send to the main application.")
 parser.add_argument("--ip", default="127.0.0.1",
-                        help="Specify the ip address of the main application.")
+                    help="Specify the ip address of the main application.")
 parser.add_argument("--max-presence-duration", default=10.0, type=float,
-                        help="Period of time after which a presence is considered to have a speed of 0.")
+                    help="Period of time after which a presence is considered to have a speed of 0.")
 parser.add_argument("--invalid-presence-duration", default=300.0, type=float,
-                        help="Period of time after which a presence is considered invalid because body is moving way too slow (in seconds). Prevents detection of inflatables.")
+                    help="Period of time after which a presence is considered invalid because body is moving way too slow (in seconds). Prevents detection of inflatables.")
 parser.add_argument("--verbose", action='store_true',
-                        help="Verbose mode.")
+                    help="Verbose mode.")
 
 args = parser.parse_args()
 dispatcher = dispatcher.Dispatcher()
 server = osc_server.ThreadingOSCUDPServer(("localhost", int(args.receive_port)), dispatcher)
 client = udp_client.SimpleUDPClient(args.ip, int(args.send_port))
 server_thread = threading.Thread(target=server.serve_forever)
-
 
 max_presence_duration = args.max_presence_duration
 invalid_presence_duration = args.invalid_presence_duration
@@ -137,19 +146,22 @@ start_time = time.time()
 node_signals = {}
 rooms = {}
 
+
 # Adds a node signal.
 def add_node(nodeId, entranceId, roomId, base_distance):
     global node_signals
     node_signals[nodeId] = NodeSignal(nodeId, entranceId, roomId, base_distance)
+
 
 # Adds a room object.
 def add_room(roomId):
     global rooms
     rooms[roomId] = Room(roomId)
 
+
 # Create all nodes.
 add_node(8, 1, 1, 266)
-add_node(2, 2, 1, 1084) # to verify
+add_node(2, 2, 1, 1084)  # to verify
 add_node(3, 3, 2, 82)
 add_node(4, 4, 2, 408)
 
@@ -158,20 +170,21 @@ add_node(6, 6, 3, 130)
 
 add_node(7, 7, 0, 140)
 
-#add_node(8, 8, 0, 65535) # dummy
+# add_node(8, 8, 0, 65535) # dummy
 
 OUTDOOR_ROOM_ID = 0
 LAST_ROOM_ID = 3
 N_ROOMS = 4
 
 # Create all rooms.
-add_room(0) # Room 0 corresponds to the outdoor
+add_room(0)  # Room 0 corresponds to the outdoor
 add_room(1)
 add_room(2)
 add_room(3)
 
 energy = 0.
 ENERGY_STEP = 0.1
+
 
 # OSC Handler: Receive data from sensor.
 def receive_sensor(unused_addr, nid, distance, strength, integration):
@@ -183,21 +196,25 @@ def receive_sensor(unused_addr, nid, distance, strength, integration):
     speed = node.update(t, distance)
 
     if speed:
-        record_detect(nid, speed)
+        record_detect(t, nid, speed)
+
 
 # OSC Handler: artificial data reception.
 def test_detect(unused_addr, nid, speed):
-    record_detect(nid, speed)
+    global start_time
+    t = time.time() - start_time
+    record_detect(t, nid, speed)
+
 
 # Helper function: record one detection.
-def record_detect(nid, speed):
+def record_detect(t, nid, speed):
     global node_signals, energy
 
     node = node_signals[nid]
-    node.triggerDetect();
+    node.triggerDetect(speed)
 
     # Trigger information about detection.
-    client.send_message("/sensefactory/sensor/detect", [ node.entranceId(), speed ])
+    client.send_message("/sensefactory/sensor/detect", [node.entranceId(), speed])
 
     # Update counts.
     roomId = node.roomId()
@@ -206,25 +223,36 @@ def record_detect(nid, speed):
         prevRoomId = LAST_ROOM_ID
     # Max. one person moves from previous room to the next room.
     if prevRoomId == OUTDOOR_ROOM_ID:
-        unit = 1 # there is always people outside
+        unit = 1  # there is always people outside
     else:
         count = rooms[prevRoomId].getCount()
-        int_count = int(count) + 1 # eg. count = 1.23294 --> int_count = 2
-        unit = count / int_count # only add people that exist (or parts of people)
-    print("room: {} prev: {} prevcount: {} unit: {}".format(roomId, prevRoomId, rooms[prevRoomId].getCount(), unit))
+        int_count = int(count) + 1  # eg. count = 1.23294 --> int_count = 2
+        unit = count / int_count  # only add people that exist (or parts of people)
     rooms[prevRoomId].add(-unit)
     rooms[roomId].add(unit)
 
+    # Check if we need to trigger the curious agent.
+    entranceId = node.entranceId()
+    if entranceId == 1:
+        curious_agent.trigger(t, CuriousAgent.LEFT)
+    elif entranceId == 2:
+        curious_agent.trigger(t, CuriousAgent.RIGHT)
+
     # Update energy.
     energy += speed * ENERGY_STEP
-    print("energy: {}".format(energy))
+    energy = min(energy, 1.0)
     if energy >= 1.0:
-        client.send_message("/sensefactory/energy/burst", [])
-        energy = 0.
-    
+        threading.Thread(target=energy_burst).start()
+
     send_stats()
 
+    if verbose_mode:
+        print("room: {} prev: {} prevcount: {} unit: {}".format(roomId, prevRoomId, rooms[prevRoomId].getCount(), unit))
+        print("energy: {}".format(energy))
+
+
 dataset = []
+
 
 def get_rooms_counts_raw():
     count1 = rooms[1].getCount()
@@ -234,13 +262,15 @@ def get_rooms_counts_raw():
 
     return [count1, count2, count3, totalCount]
 
+
 def get_rooms_counts_normalized(counts):
     norm1 = min(counts[0] / MAX_COUNT_ROOM, 1.)
     norm2 = min(counts[1] / MAX_COUNT_ROOM, 1.)
     norm3 = min(counts[2] / MAX_COUNT_ROOM, 1.)
     totalNorm = min(counts[3] / MAX_COUNT_TOTAL, 1.)
 
-    return [ norm1, norm2, norm3, totalNorm ]
+    return [norm1, norm2, norm3, totalNorm]
+
 
 def get_signals_counts_normalized():
     counts = []
@@ -256,6 +286,14 @@ def get_signals_counts_normalized():
 
     return counts
 
+
+def get_signals_speeds_normalized():
+    speeds = []
+    for i, n in node_signals.items():
+        speeds.append(n.getAverageSpeed())
+    return speeds
+
+
 # Computes and sends basic statistics.
 def send_stats():
     global energy, dataset
@@ -265,41 +303,59 @@ def send_stats():
     counts = get_rooms_counts_raw()
     norm_counts = get_rooms_counts_normalized(counts)
     norm_signal_counts = get_signals_counts_normalized()
-
-    client.send_message("/sensefactory/rooms/counts/raw", counts)
-    client.send_message("/sensefactory/rooms/counts/normalized", norm_counts)
-    client.send_message("/sensefactory/sensors/counts/normalized", norm_signal_counts)
-    client.send_message("/sensefactory/energy/value", [ energy ])
-    # client.send_message("/datasetsize", [ len(dataset) ])
+    norm_signal_speeds = get_signals_speeds_normalized()
 
     data_row += counts
     data_row += norm_counts
     data_row += norm_signal_counts
+    data_row += norm_signal_speeds
     # data_row.append(energy) # don't add energy as it is not very much predictible according to the rest
 
-    # Process state
+    # Send manifold "supersense" data.
     manifold_data = manifold_transform(np.asarray(data_row)).tolist()
-    client.send_message("/sensefactory/supersenses/raw", manifold_data )
+
+    # Send all messages.
+    client.send_message("/sensefactory/rooms/counts/raw", counts)
+    client.send_message("/sensefactory/rooms/counts/normalized", norm_counts)
+    client.send_message("/sensefactory/sensors/counts/normalized", norm_signal_counts)
+    client.send_message("/sensefactory/sensors/speeds/normalized", norm_signal_speeds)
+    client.send_message("/sensefactory/energy/value", [energy])
+    # client.send_message("/datasetsize", [ len(dataset) ])
+    client.send_message("/sensefactory/supersenses/raw", manifold_data)
 
     dataset.append(data_row)
 
+
 manifold_dim = 2
 manifold_model = None
+manifold_scaler = None
 manifold_n_neighbors = 30
 manifold_min_samples = 200
 manifold_max_samples = 5000
 
 
+def energy_burst():
+    global manifold_model, manifold_scaler, energy
+    energy = 0.
+    client.send_message("/sensefactory/energy/burst", [])
+    manifold_model, manifold_scaler = manifold_train_isomap()
+
+
 def manifold_transform(x):
-    global manifold_model
+    global manifold_model, manifold_scaler
     if manifold_model == None:
-        return np.zeros(manifold_dim)
+        result = np.full(manifold_dim, 0.5)
     else:
-        return manifold_model.transform(x.reshape(1, -1))[0]
+        x = manifold_model.transform(x.reshape(1, -1))
+        x = manifold_scaler.transform(x)
+        x = np.clip(x, 0, 1)
+        result = x[0]
+    return result
+
 
 def manifold_train_isomap():
     if len(dataset) < manifold_min_samples:
-        return None
+        return None, None
     else:
         data = np.asarray(dataset)
         n_samples = len(dataset)
@@ -325,7 +381,6 @@ def manifold_train_isomap():
 
 
 class EntityLight:
-
     intensity = 0
     frequency = 0
 
@@ -352,8 +407,9 @@ class EntityLight:
 
     def sendOsc(self):
         global client
-        freq = min(1.0, self.frequency / 10.) # remap frequenci in [0, 1]
-        client.send_message("/sensefactory/entity", [ self.id, freq, self.intensity ])
+        freq = min(1.0, self.frequency / 10.)  # remap frequenci in [0, 1]
+        client.send_message("/sensefactory/entity", [self.id, freq, self.intensity])
+
 
 class CuriousAgent:
     SLEEPING = 0
@@ -414,7 +470,7 @@ class CuriousAgent:
             elif t > self.stateEndTime:
                 self.nextState(self.SLEEPING)
 
-        else: # curious
+        else:  # curious
             # one light "looking"
             if self.entering:
                 if verbose_mode:
@@ -426,8 +482,8 @@ class CuriousAgent:
                 else:
                     lookingLight = self.lightR
                     closedLight = self.lightL
-                lookingLight.update(1, 10) # blink fast
-                closedLight.update(0, 1) # dark
+                lookingLight.update(1, 10)  # blink fast
+                closedLight.update(0, 1)  # dark
                 self.triggered = False
                 self.entering = False
 
@@ -443,12 +499,16 @@ class CuriousAgent:
             print("Curious agent triggered")
         self.triggered = side
 
+
 curious_agent = CuriousAgent()
+
+
 def entities_loop():
     while True:
         t = time.time() - start_time
         curious_agent.step(t)
         time.sleep(0.1)
+
 
 # Main loop thread function.
 def main_loop():
@@ -456,27 +516,25 @@ def main_loop():
         # Send statistics.
         send_stats()
 
-        max_time_visitor_in_room = 300 # 5 minutes
+        max_time_visitor_in_room = 300  # 5 minutes
         period = 0.1
         decay = 1.0 / (max_time_visitor_in_room / period)
 
         for i in range(1, N_ROOMS):
             rooms[i].add(-decay)
-        
+
         time.sleep(period)
 
-def manifold_loop():
-    global manifold_model
-    while len(dataset) < manifold_min_samples:
-        continue
-    while True:
-        manifold_model = manifold_train_isomap()
-        time.sleep(60.0)
 
+# def manifold_loop():
+#     global manifold_model, manifold_scaler
+#     while True:
+#         if energy >= 1.0:
+#             energy_burst()
 
 # Start main loop.
 threading.Thread(target=main_loop).start()
-threading.Thread(target=manifold_loop).start()
+threading.Thread(target=entities_loop).start()
 
 # Assign OSC handlers and start server.
 dispatcher.map("/minibee/data", receive_sensor)
@@ -523,3 +581,35 @@ server_thread.start()
 #     print("Time: %.2fs)" % (time.time() - t0))
 #     print("Done. Reconstruction error: %g" % clf.reconstruction_error_)
 #     return clf
+
+#
+# # ----------------------------------------------------------------------
+# # Scale and visualize the embedding vectors
+# def plot_embedding(X, title=None):
+#     x_min, x_max = np.min(X, 0), np.max(X, 0)
+#     X = (X - x_min) / (x_max - x_min)
+#     print (X, x_min, x_max)
+#
+#     plt.figure()
+#     for i in range(X.shape[0]):
+#         plt.text(X[i, 0], X[i, 1], "*",
+# #                 color=plt.cm.Set1(y[i] / 10.),
+#                  fontdict={'weight': 'bold', 'size': 9})
+#
+#     # if hasattr(offsetbox, 'AnnotationBbox'):
+#     #     # only print thumbnails with matplotlib > 1.0
+#     #     shown_images = np.array([[1., 1.]])  # just something big
+#     #     for i in range(X.shape[0]):
+#     #         dist = np.sum((X[i] - shown_images) ** 2, 1)
+#     #         if np.min(dist) < 4e-3:
+#     #             # don't show points that are too close
+#     #             continue
+#     #         shown_images = np.r_[shown_images, [X[i]]]
+#     #         imagebox = offsetbox.AnnotationBbox(
+#     #             offsetbox.OffsetImage(digits.images[i], cmap=plt.cm.gray_r),
+#     #             X[i])
+#     #         ax.add_artist(imagebox)
+#     plt.xticks([]), plt.yticks([])
+#     if title is not None:
+#         plt.title(title)
+#     plt.show()
