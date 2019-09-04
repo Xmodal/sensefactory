@@ -10,8 +10,7 @@ from pythonosc import udp_client
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import offsetbox
-from sklearn import (manifold, datasets, decomposition, ensemble,
-                     discriminant_analysis, random_projection, neighbors)
+from sklearn import (manifold, preprocessing)
 
 BASE_DISTANCE_THRESHOLD = 0.9
 
@@ -219,10 +218,15 @@ def record_detect(nid, speed):
     energy += speed * ENERGY_STEP
     print("energy: {}".format(energy))
     if energy >= 1.0:
-        client.send_message("/sensefactory/energy/burst", [])
-        energy = 0.
-    
+        energy_burst()
+
     send_stats()
+
+def energy_burst():
+    global manifold_model, manifold_scaler, energy
+    client.send_message("/sensefactory/energy/burst", [])
+    manifold_model, manifold_scaler = manifold_train_isomap()
+    energy = 0.
 
 dataset = []
 
@@ -277,7 +281,7 @@ def send_stats():
     data_row += norm_signal_counts
     # data_row.append(energy) # don't add energy as it is not very much predictible according to the rest
 
-    # Process state
+    # Send manifold "supersense" data.
     manifold_data = manifold_transform(np.asarray(data_row)).tolist()
     client.send_message("/sensefactory/supersenses/raw", manifold_data )
 
@@ -285,21 +289,25 @@ def send_stats():
 
 manifold_dim = 2
 manifold_model = None
+manifold_scaler = None
 manifold_n_neighbors = 30
 manifold_min_samples = 200
 manifold_max_samples = 5000
 
-
 def manifold_transform(x):
-    global manifold_model
+    global manifold_model, manifold_scaler
     if manifold_model == None:
-        return np.zeros(manifold_dim)
+        return np.full(manifold_dim, 0.5)
     else:
-        return manifold_model.transform(x.reshape(1, -1))[0]
+        x = manifold_model.transform(x.reshape(1, -1))
+        x = manifold_scaler.transform(x)
+        x = np.clip(x, 0, 1)
+        return x[0]
+
 
 def manifold_train_isomap():
     if len(dataset) < manifold_min_samples:
-        return None
+        return None, None
     else:
         data = np.asarray(dataset)
         n_samples = len(dataset)
@@ -311,9 +319,10 @@ def manifold_train_isomap():
         print(data.shape)
         # Isomap projection of the dataset
         model = manifold.Isomap(manifold_n_neighbors, n_components=manifold_dim)
-        model.fit_transform(data)
-        return model
-
+        data = model.fit_transform(data)
+        scaler = preprocessing.MinMaxScaler()
+        scaler.fit(data)
+        return model, scaler
 # ----------------------------------------------------------------------
 # Scale and visualize the embedding vectors
 def plot_embedding(X, title=None):
@@ -360,18 +369,19 @@ def main_loop():
         
         time.sleep(period)
 
-def manifold_loop():
-    global manifold_model
-    while len(dataset) < manifold_min_samples:
-        continue
-    while True:
-        manifold_model = manifold_train_isomap()
-        time.sleep(60.0)
+# def manifold_loop():
+#     global manifold_model, manifold_scaler
+#     while len(dataset) < manifold_min_samples:
+#         continue
+#     while True:
+#
+#         manifold_model, manifold_scaler = manifold_train_isomap()
+#         time.sleep(60.0)
 
 
 # Start main loop.
 threading.Thread(target=main_loop).start()
-threading.Thread(target=manifold_loop).start()
+# threading.Thread(target=manifold_loop).start()
 
 # Assign OSC handlers and start server.
 dispatcher.map("/minibee/data", receive_sensor)
