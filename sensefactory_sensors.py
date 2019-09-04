@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from matplotlib import offsetbox
 from sklearn import (manifold, preprocessing)
 
-BASE_DISTANCE_THRESHOLD = 0.9
+BASE_DISTANCE_THRESHOLD = 0.7
 
 # Max. number of people in the installation.
 MAX_COUNT_ROOM = 10.
@@ -105,7 +105,7 @@ class NodeSignal:
             self.presence_detection_start_time = 0
 
         if verbose_mode:
-            print("Udate nid={} at t={} and distance={}: speed={}".format(self.nodeId(), t, distance, detected))
+#            print("Udate nid={} at t={} and distance={}: speed={}".format(self.nodeId(), t, distance, detected))
             if detected:
                 print("*** DETECTED {} ***".format(self.nodeId()))
 
@@ -160,8 +160,8 @@ def add_room(roomId):
 
 
 # Create all nodes.
-add_node(8, 1, 1, 266)
-add_node(2, 2, 1, 1084)  # to verify
+add_node(8, 1, 1, 200)
+add_node(2, 2, 1, 65) # to verify
 add_node(3, 3, 2, 82)
 add_node(4, 4, 2, 408)
 
@@ -234,9 +234,9 @@ def record_detect(t, nid, speed):
     # Check if we need to trigger the curious agent.
     entranceId = node.entranceId()
     if entranceId == 1:
-        curious_agent.trigger(t, CuriousAgent.LEFT)
-    elif entranceId == 2:
         curious_agent.trigger(t, CuriousAgent.RIGHT)
+    elif entranceId == 2:
+        curious_agent.trigger(t, CuriousAgent.LEFT)
 
     # Update energy.
     energy += speed * ENERGY_STEP
@@ -441,13 +441,15 @@ class CuriousAgent:
                 if verbose_mode:
                     print("Curious agent: entering sleeping state")
                 self.stateEndTime = t + random.uniform(10.0, 30.0)
-                self.lightL.update(0.5, 1.)
-                self.lightR.update(0.5, 1.)
+                self.lightL.update(0.5, 0.4)
+                self.lightR.update(0.5, 0.4)
                 self.entering = False
                 # self.triggered = False
 
-            if self.triggered and random.random() < 0.5:
-                self.nextState(self.CURIOUS)
+            if self.triggered:
+                self.triggered = False
+                if random.random() < 0.5:
+                    self.nextState(self.CURIOUS)
             elif t > self.stateEndTime:
                 self.nextState(self.ACTIVE)
 
@@ -457,13 +459,13 @@ class CuriousAgent:
                 if verbose_mode:
                     print("Curious agent: entering active state")
                 self.stateEndTime = t + random.uniform(10.0, 30.0)
-                self.lightL.update(1.0, 3)
-                self.lightR.update(1.0, 3)
+                self.lightL.setIntensity(1.0)
+                self.lightR.setIntensity(1.0)
                 self.entering = False
                 # self.triggered = False
             else:
-                self.lightL.frequency += random.uniform(-0.01, 0.2)
-                self.lightR.frequency += random.uniform(-0.01, 0.2)
+                self.lightL.frequency += random.uniform(0.01, 0.1)
+                self.lightR.frequency += random.uniform(0.01, 0.1)
 
             if self.triggered:
                 self.nextState(self.CURIOUS)
@@ -486,6 +488,9 @@ class CuriousAgent:
                 closedLight.update(0, 1)  # dark
                 self.triggered = False
                 self.entering = False
+            else:
+                self.lightL.frequency *= random.uniform(0.9, 0.99)
+                self.lightR.frequency *= random.uniform(0.9, 0.99)
 
             if t > self.stateEndTime:
                 self.nextState(self.ACTIVE)
