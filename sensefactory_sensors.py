@@ -191,14 +191,16 @@ def receive_sensor(unused_addr, nid, distance, strength, integration):
     speed = node.update(t, distance)
 
     if speed:
-        record_detect(nid, speed)
+        record_detect(t, nid, speed)
 
 # OSC Handler: artificial data reception.
 def test_detect(unused_addr, nid, speed):
-    record_detect(nid, speed)
+    global start_time
+    t = time.time() - start_time
+    record_detect(t, nid, speed)
 
 # Helper function: record one detection.
-def record_detect(nid, speed):
+def record_detect(t, nid, speed):
     global node_signals, energy
 
     node = node_signals[nid]
@@ -221,6 +223,13 @@ def record_detect(nid, speed):
         unit = count / int_count # only add people that exist (or parts of people)
     rooms[prevRoomId].add(-unit)
     rooms[roomId].add(unit)
+
+    # Check if we need to trigger the curious agent.
+    entranceId = node.entranceId()
+    if entranceId == 1:
+        curious_agent.trigger(t, CuriousAgent.LEFT)
+    elif entranceId == 2:
+        curious_agent.trigger(t, CuriousAgent.RIGHT)
 
     # Update energy.
     energy += speed * ENERGY_STEP
@@ -391,6 +400,9 @@ class CuriousAgent:
     ACTIVE = 1
     CURIOUS = 2
 
+    LEFT = 1
+    RIGHT = 2
+
     state = 0
     entering = False
 
@@ -442,8 +454,14 @@ class CuriousAgent:
             # one light "looking"
             if self.entering:
                 self.stateEndTime = t + random.uniform(3.0, 6.0)
-                self.lightL.update(1, 10) # blink fast
-                self.lightR.update(0, 1) # dark
+                if self.triggered == self.LEFT:
+                    lookingLight = self.lightL
+                    closedLight = self.lightR
+                else:
+                    lookingLight = self.lightR
+                    closedLight = self.lightL
+                lookingLight.update(1, 10) # blink fast
+                closedLight.update(0, 1) # dark
                 self.triggered = False
                 self.entering = False
 
@@ -454,8 +472,10 @@ class CuriousAgent:
         self.lightL.sendOsc()
         self.lightR.sendOsc()
 
-    def trigger(self, t):
-        self.triggered = True
+    def trigger(self, t, side):
+        if verbose_mode:
+            print("Curious agent triggered")
+        self.triggered = side
 
 curious_agent = CuriousAgent()
 def entities_loop():
