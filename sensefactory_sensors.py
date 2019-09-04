@@ -440,8 +440,8 @@ class CuriousAgent:
                 if verbose_mode:
                     print("Curious agent: entering active state")
                 self.stateEndTime = t + random.uniform(10.0, 30.0)
-                self.lightL.update(0.5, 2)
-                self.lightR.update(0.5, 2)
+                self.lightL.update(1.0, 3)
+                self.lightR.update(1.0, 3)
                 self.entering = False
                 # self.triggered = False
             else:
