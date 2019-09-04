@@ -211,23 +211,25 @@ def record_detect(nid, speed):
         count = rooms[prevRoomId].getCount()
         int_count = int(count) + 1 # eg. count = 1.23294 --> int_count = 2
         unit = count / int_count # only add people that exist (or parts of people)
-    print("room: {} prev: {} prevcount: {} unit: {}".format(roomId, prevRoomId, rooms[prevRoomId].getCount(), unit))
     rooms[prevRoomId].add(-unit)
     rooms[roomId].add(unit)
 
     # Update energy.
     energy += speed * ENERGY_STEP
-    print("energy: {}".format(energy))
-    if energy >= 1.0:
-        energy_burst()
+    energy = min(energy, 1.0)
 
     send_stats()
 
+    if verbose_mode:
+        print("room: {} prev: {} prevcount: {} unit: {}".format(roomId, prevRoomId, rooms[prevRoomId].getCount(), unit))
+        print("energy: {}".format(energy))
+
+
 def energy_burst():
     global manifold_model, manifold_scaler, energy
+    energy = 0.
     client.send_message("/sensefactory/energy/burst", [])
     manifold_model, manifold_scaler = manifold_train_isomap()
-    energy = 0.
 
 dataset = []
 
@@ -304,7 +306,6 @@ def manifold_transform(x):
         x = manifold_scaler.transform(x)
         x = np.clip(x, 0, 1)
         return x[0]
-
 
 def manifold_train_isomap():
     if len(dataset) < manifold_min_samples:
@@ -456,20 +457,16 @@ def main_loop():
         
         time.sleep(period)
 
-# def manifold_loop():
-#     global manifold_model, manifold_scaler
-#     while len(dataset) < manifold_min_samples:
-#         continue
-#     while True:
-#
-#         manifold_model, manifold_scaler = manifold_train_isomap()
-#         time.sleep(60.0)
-
+def manifold_loop():
+    global manifold_model, manifold_scaler
+    while True:
+        if energy >= 1.0:
+            energy_burst()
 
 # Start main loop.
 threading.Thread(target=main_loop).start()
 threading.Thread(target=entities_loop).start()
-# threading.Thread(target=manifold_loop).start()
+threading.Thread(target=manifold_loop).start()
 
 # Assign OSC handlers and start server.
 dispatcher.map("/minibee/data", receive_sensor)
