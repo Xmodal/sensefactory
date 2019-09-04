@@ -421,6 +421,8 @@ class CuriousAgent:
         if self.state == self.SLEEPING:
             # slow constant breathing
             if self.entering:
+                if verbose_mode:
+                    print("Curious agent: entering sleeping state")
                 self.stateEndTime = t + random.uniform(10.0, 30.0)
                 self.lightL.update(0.5, 1.)
                 self.lightR.update(0.5, 1.)
@@ -435,6 +437,8 @@ class CuriousAgent:
         elif self.state == self.ACTIVE:
             # random walk in oscillations
             if self.entering:
+                if verbose_mode:
+                    print("Curious agent: entering active state")
                 self.stateEndTime = t + random.uniform(10.0, 30.0)
                 self.lightL.update(0.5, 2)
                 self.lightR.update(0.5, 2)
@@ -452,6 +456,8 @@ class CuriousAgent:
         else: # curious
             # one light "looking"
             if self.entering:
+                if verbose_mode:
+                    print("Curious agent: entering curious state")
                 self.stateEndTime = t + random.uniform(3.0, 6.0)
                 if self.triggered == self.LEFT:
                     lookingLight = self.lightL
