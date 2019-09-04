@@ -1,6 +1,7 @@
 import argparse
 import time
 import threading
+import random
 
 from pythonosc import dispatcher
 from pythonosc import osc_server
@@ -17,6 +18,76 @@ BASE_DISTANCE_THRESHOLD = 0.9
 # Max. number of people in the installation.
 MAX_COUNT_ROOM = 10.
 MAX_COUNT_TOTAL = 30.
+
+class Light:
+    def __init__(self, intensity=1., frequency=1., offset=0.):
+        self.intensity = float(intensity)
+        self.frequency = float(frequency)
+        self.offset = float(offset)
+
+class CuriousAgent:
+    SLEEPING = 0
+    ACTIVE = 1
+    CURIOUS = 2
+
+    def __init__(self):
+        self.lightL = Light()
+        self.lightR = Light()
+        self.stateEndTime = 0
+        self.nextState(SLEEPING)
+        self.triggered = False
+        pass
+
+    def nextState(self, state):
+        self.state = state
+        self.entering = True
+
+    def step(self, t):
+        if self.state == SLEEPING:
+            # slow constant breathing
+            if self.entering:
+                self.stateEndTime = t + random.uniform(10.0, 30.0)
+                self.lightL = Light(0.5, 1.)
+                self.lightR = Light(0.5, 1.)
+                self.triggered = False
+
+            if self.triggered and random.random() < 0.5:
+                self.nextState(CURIOUS)
+            elif t > self.stateEndTime:
+                self.nextState(ACTIVE)
+
+        elif self.state == ACTIVE:
+            # random walk in oscillations
+            if self.entering:
+                self.stateEndTime = t + random.uniform(10.0, 30.0)
+                self.lightL = Light(0.5, 2.)
+                self.lightR = Light(0.5, 2.)
+                self.triggered = False
+            else:
+                self.lightL.frequency += random.uniform(-0.01, 0.2)
+                self.lightR.frequency += random.uniform(-0.01, 0.2)
+
+            if self.triggered:
+                self.nextState(CURIOUS)
+            elif t > self.stateEndTime:
+                self.nextState(SLEEPING)
+
+        else: # curious
+            # one light "looking"
+            if self.entering:
+                self.stateEndTime = t + random.uniform(3.0, 6.0)
+                self.lightL = Light(1, 10) # blink fast
+                self.lightR = Light(0, 1) # dark
+                self.triggered = False
+
+            if t > self.stateEndTime:
+                self.nextState(ACTIVE)
+
+        client.send_message("/sensefactory/entity/left", self.light)
+
+
+    def trigger(self, t):
+        self.triggered = True
 
 class Room:
     def __init__(self, id):
@@ -323,6 +394,13 @@ def manifold_train_isomap():
         scaler = preprocessing.MinMaxScaler()
         scaler.fit(data)
         return model, scaler
+
+    # data_row.append(norm1)
+    # data_row.append(norm2)
+    # data_row.append(norm3)
+    # data_row.append(energy)
+
+    # dataset.append(data_row)
 
 # Main loop thread function.
 def main_loop():
