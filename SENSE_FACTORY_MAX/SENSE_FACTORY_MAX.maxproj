@@ -2,7 +2,7 @@
 	"name" : "SENSE_FACTORY_MAX",
 	"version" : 1,
 	"creationdate" : 3643381600,
-	"modificationdate" : 3650396907,
+	"modificationdate" : 3650442273,
 	"viewrect" : [ 1.0, 45.0, 300.0, 642.0 ],
 	"autoorganize" : 1,
 	"hideprojectwindow" : 0,
@@ -21,11 +21,6 @@
 				"local" : 1
 			}
 ,
-			"superCycle.maxpat" : 			{
-				"kind" : "patcher",
-				"local" : 1
-			}
-,
 			"superBurst.maxpat" : 			{
 				"kind" : "patcher",
 				"local" : 1
@@ -36,7 +31,22 @@
 				"local" : 1
 			}
 ,
+			"superCycle.maxpat" : 			{
+				"kind" : "patcher",
+				"local" : 1
+			}
+,
+			"whiteRGB.maxpat" : 			{
+				"kind" : "patcher",
+				"local" : 1
+			}
+,
 			"ultraCycle.maxpat" : 			{
+				"kind" : "patcher",
+				"local" : 1
+			}
+,
+			"bauhausRandom.maxpat" : 			{
 				"kind" : "patcher",
 				"local" : 1
 			}
@@ -66,12 +76,17 @@
 				"local" : 1
 			}
 ,
-			"bauhausRandom.maxpat" : 			{
+			"superTriangle.maxpat" : 			{
 				"kind" : "patcher",
-				"local" : 1
+				"local" : 1,
+				"singleton" : 				{
+					"bootpath" : "~/Dropbox/Xmodal/SENSE FACTORY/sensefactory/SENSE_FACTORY_MAX/patchers",
+					"projectrelativepath" : "./patchers"
+				}
+
 			}
 ,
-			"whiteRGB.maxpat" : 			{
+			"roomCountSelector.maxpat" : 			{
 				"kind" : "patcher",
 				"local" : 1
 			}

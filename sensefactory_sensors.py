@@ -1,7 +1,6 @@
 import argparse
 import time
 import threading
-import random
 
 from pythonosc import dispatcher
 from pythonosc import osc_server
@@ -11,7 +10,8 @@ from pythonosc import udp_client
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import offsetbox
-from sklearn import (manifold, preprocessing)
+from sklearn import (manifold, datasets, decomposition, ensemble,
+                     discriminant_analysis, random_projection, neighbors)
 
 BASE_DISTANCE_THRESHOLD = 0.9
 
@@ -55,7 +55,6 @@ class NodeSignal:
         self.presence_detection_start_time = 0
 
         self.count = 0.0
-        self.total_speed = 0.0 # used to compute average speed
 
     def nodeId(self):
         return self._nodeId
@@ -69,15 +68,8 @@ class NodeSignal:
     def getCount(self):
         return self.count
 
-    def getAverageSpeed(self):
-        if self.count == 0:
-            return 0
-        else:
-            return self.total_speed / self.count
-
-    def triggerDetect(self, speed):
+    def triggerDetect(self):
         self.count += 1
-        self.total_speed += speed
 
     def update(self, t, distance):
         detected = False
@@ -191,20 +183,18 @@ def receive_sensor(unused_addr, nid, distance, strength, integration):
     speed = node.update(t, distance)
 
     if speed:
-        record_detect(t, nid, speed)
+        record_detect(nid, speed)
 
 # OSC Handler: artificial data reception.
 def test_detect(unused_addr, nid, speed):
-    global start_time
-    t = time.time() - start_time
-    record_detect(t, nid, speed)
+    record_detect(nid, speed)
 
 # Helper function: record one detection.
-def record_detect(t, nid, speed):
+def record_detect(nid, speed):
     global node_signals, energy
 
     node = node_signals[nid]
-    node.triggerDetect(speed)
+    node.triggerDetect();
 
     # Trigger information about detection.
     client.send_message("/sensefactory/sensor/detect", [ node.entranceId(), speed ])
@@ -221,28 +211,18 @@ def record_detect(t, nid, speed):
         count = rooms[prevRoomId].getCount()
         int_count = int(count) + 1 # eg. count = 1.23294 --> int_count = 2
         unit = count / int_count # only add people that exist (or parts of people)
+    print("room: {} prev: {} prevcount: {} unit: {}".format(roomId, prevRoomId, rooms[prevRoomId].getCount(), unit))
     rooms[prevRoomId].add(-unit)
     rooms[roomId].add(unit)
 
-    # Check if we need to trigger the curious agent.
-    entranceId = node.entranceId()
-    if entranceId == 1:
-        curious_agent.trigger(t, CuriousAgent.LEFT)
-    elif entranceId == 2:
-        curious_agent.trigger(t, CuriousAgent.RIGHT)
-
     # Update energy.
     energy += speed * ENERGY_STEP
-    energy = min(energy, 1.0)
+    print("energy: {}".format(energy))
     if energy >= 1.0:
-        threading.Thread(target=energy_burst).start()
-
+        client.send_message("/sensefactory/energy/burst", [])
+        energy = 0.
+    
     send_stats()
-
-    if verbose_mode:
-        print("room: {} prev: {} prevcount: {} unit: {}".format(roomId, prevRoomId, rooms[prevRoomId].getCount(), unit))
-        print("energy: {}".format(energy))
-
 
 dataset = []
 
@@ -276,12 +256,6 @@ def get_signals_counts_normalized():
 
     return counts
 
-def get_signals_speeds_normalized():
-    speeds = []
-    for i, n in node_signals.items():
-        speeds.append(n.getAverageSpeed())
-    return speeds
-
 # Computes and sends basic statistics.
 def send_stats():
     global energy, dataset
@@ -291,55 +265,41 @@ def send_stats():
     counts = get_rooms_counts_raw()
     norm_counts = get_rooms_counts_normalized(counts)
     norm_signal_counts = get_signals_counts_normalized()
-    norm_signal_speeds = get_signals_speeds_normalized()
+
+    client.send_message("/sensefactory/rooms/counts/raw", counts)
+    client.send_message("/sensefactory/rooms/counts/normalized", norm_counts)
+    client.send_message("/sensefactory/sensors/counts/normalized", norm_signal_counts)
+    client.send_message("/sensefactory/energy/value", [ energy ])
+    # client.send_message("/datasetsize", [ len(dataset) ])
 
     data_row += counts
     data_row += norm_counts
     data_row += norm_signal_counts
-    data_row += norm_signal_speeds
     # data_row.append(energy) # don't add energy as it is not very much predictible according to the rest
 
-    # Send manifold "supersense" data.
+    # Process state
     manifold_data = manifold_transform(np.asarray(data_row)).tolist()
-
-    # Send all messages.
-    client.send_message("/sensefactory/rooms/counts/raw", counts)
-    client.send_message("/sensefactory/rooms/counts/normalized", norm_counts)
-    client.send_message("/sensefactory/sensors/counts/normalized", norm_signal_counts)
-    client.send_message("/sensefactory/sensors/speeds/normalized", norm_signal_speeds)
-    client.send_message("/sensefactory/energy/value", [ energy ])
-    # client.send_message("/datasetsize", [ len(dataset) ])
     client.send_message("/sensefactory/supersenses/raw", manifold_data )
 
     dataset.append(data_row)
 
 manifold_dim = 2
 manifold_model = None
-manifold_scaler = None
 manifold_n_neighbors = 30
 manifold_min_samples = 200
 manifold_max_samples = 5000
 
-def energy_burst():
-    global manifold_model, manifold_scaler, energy
-    energy = 0.
-    client.send_message("/sensefactory/energy/burst", [])
-    manifold_model, manifold_scaler = manifold_train_isomap()
 
 def manifold_transform(x):
-    global manifold_model, manifold_scaler
+    global manifold_model
     if manifold_model == None:
-        result = np.full(manifold_dim, 0.5)
+        return np.zeros(manifold_dim)
     else:
-        x = manifold_model.transform(x.reshape(1, -1))
-        x = manifold_scaler.transform(x)
-        x = np.clip(x, 0, 1)
-        result = x[0]
-    return result
+        return manifold_model.transform(x.reshape(1, -1))[0]
 
 def manifold_train_isomap():
     if len(dataset) < manifold_min_samples:
-        return None, None
+        return None
     else:
         data = np.asarray(dataset)
         n_samples = len(dataset)
@@ -505,15 +465,18 @@ def main_loop():
         
         time.sleep(period)
 
-# def manifold_loop():
-#     global manifold_model, manifold_scaler
-#     while True:
-#         if energy >= 1.0:
-#             energy_burst()
+def manifold_loop():
+    global manifold_model
+    while len(dataset) < manifold_min_samples:
+        continue
+    while True:
+        manifold_model = manifold_train_isomap()
+        time.sleep(60.0)
+
 
 # Start main loop.
 threading.Thread(target=main_loop).start()
-threading.Thread(target=entities_loop).start()
+threading.Thread(target=manifold_loop).start()
 
 # Assign OSC handlers and start server.
 dispatcher.map("/minibee/data", receive_sensor)
@@ -560,35 +523,3 @@ server_thread.start()
 #     print("Time: %.2fs)" % (time.time() - t0))
 #     print("Done. Reconstruction error: %g" % clf.reconstruction_error_)
 #     return clf
-
-#
-# # ----------------------------------------------------------------------
-# # Scale and visualize the embedding vectors
-# def plot_embedding(X, title=None):
-#     x_min, x_max = np.min(X, 0), np.max(X, 0)
-#     X = (X - x_min) / (x_max - x_min)
-#     print (X, x_min, x_max)
-#
-#     plt.figure()
-#     for i in range(X.shape[0]):
-#         plt.text(X[i, 0], X[i, 1], "*",
-# #                 color=plt.cm.Set1(y[i] / 10.),
-#                  fontdict={'weight': 'bold', 'size': 9})
-#
-#     # if hasattr(offsetbox, 'AnnotationBbox'):
-#     #     # only print thumbnails with matplotlib > 1.0
-#     #     shown_images = np.array([[1., 1.]])  # just something big
-#     #     for i in range(X.shape[0]):
-#     #         dist = np.sum((X[i] - shown_images) ** 2, 1)
-#     #         if np.min(dist) < 4e-3:
-#     #             # don't show points that are too close
-#     #             continue
-#     #         shown_images = np.r_[shown_images, [X[i]]]
-#     #         imagebox = offsetbox.AnnotationBbox(
-#     #             offsetbox.OffsetImage(digits.images[i], cmap=plt.cm.gray_r),
-#     #             X[i])
-#     #         ax.add_artist(imagebox)
-#     plt.xticks([]), plt.yticks([])
-#     if title is not None:
-#         plt.title(title)
-#     plt.show()
