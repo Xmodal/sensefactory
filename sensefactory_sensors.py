@@ -19,76 +19,6 @@ BASE_DISTANCE_THRESHOLD = 0.9
 MAX_COUNT_ROOM = 10.
 MAX_COUNT_TOTAL = 30.
 
-class Light:
-    def __init__(self, intensity=1., frequency=1., offset=0.):
-        self.intensity = float(intensity)
-        self.frequency = float(frequency)
-        self.offset = float(offset)
-
-class CuriousAgent:
-    SLEEPING = 0
-    ACTIVE = 1
-    CURIOUS = 2
-
-    def __init__(self):
-        self.lightL = Light()
-        self.lightR = Light()
-        self.stateEndTime = 0
-        self.nextState(SLEEPING)
-        self.triggered = False
-        pass
-
-    def nextState(self, state):
-        self.state = state
-        self.entering = True
-
-    def step(self, t):
-        if self.state == SLEEPING:
-            # slow constant breathing
-            if self.entering:
-                self.stateEndTime = t + random.uniform(10.0, 30.0)
-                self.lightL = Light(0.5, 1.)
-                self.lightR = Light(0.5, 1.)
-                self.triggered = False
-
-            if self.triggered and random.random() < 0.5:
-                self.nextState(CURIOUS)
-            elif t > self.stateEndTime:
-                self.nextState(ACTIVE)
-
-        elif self.state == ACTIVE:
-            # random walk in oscillations
-            if self.entering:
-                self.stateEndTime = t + random.uniform(10.0, 30.0)
-                self.lightL = Light(0.5, 2.)
-                self.lightR = Light(0.5, 2.)
-                self.triggered = False
-            else:
-                self.lightL.frequency += random.uniform(-0.01, 0.2)
-                self.lightR.frequency += random.uniform(-0.01, 0.2)
-
-            if self.triggered:
-                self.nextState(CURIOUS)
-            elif t > self.stateEndTime:
-                self.nextState(SLEEPING)
-
-        else: # curious
-            # one light "looking"
-            if self.entering:
-                self.stateEndTime = t + random.uniform(3.0, 6.0)
-                self.lightL = Light(1, 10) # blink fast
-                self.lightR = Light(0, 1) # dark
-                self.triggered = False
-
-            if t > self.stateEndTime:
-                self.nextState(ACTIVE)
-
-        client.send_message("/sensefactory/entity/left", self.light)
-
-
-    def trigger(self, t):
-        self.triggered = True
-
 class Room:
     def __init__(self, id):
         self._id = id
@@ -402,6 +332,115 @@ def manifold_train_isomap():
 
     # dataset.append(data_row)
 
+
+class EntityLight:
+
+    intensity = 0
+    frequency = 0
+
+    def __init__(self, id, intensity=1., frequency=1.):
+        self.id = int(id)
+        self.update(intensity, frequency)
+
+    def update(self, intensity, frequency):
+        self.setIntensity(intensity).setFrequency(frequency)
+
+    def getIntensity(self):
+        return self.intensity
+
+    def getFrequency(self):
+        return self.frequency
+
+    def setIntensity(self, intensity):
+        self.intensity = float(intensity)
+        return self
+
+    def setFrequency(self, frequency):
+        self.frequency = float(frequency)
+        return self
+
+    def sendOsc(self):
+        global client
+        client.send_message("/sensefactory/entity", [ self.id, self.intensity, self.frequency ])
+
+class CuriousAgent:
+    SLEEPING = 0
+    ACTIVE = 1
+    CURIOUS = 2
+
+    state = 0
+    entering = False
+
+    def __init__(self):
+        self.lightL = EntityLight(1)
+        self.lightR = EntityLight(2)
+        self.stateEndTime = 0
+        self.nextState(self.SLEEPING)
+        self.triggered = False
+        pass
+
+    def nextState(self, state):
+        self.state = state
+        self.entering = True
+
+    def step(self, t):
+        if self.state == self.SLEEPING:
+            # slow constant breathing
+            if self.entering:
+                self.stateEndTime = t + random.uniform(10.0, 30.0)
+                self.lightL.update(0.5, 1.)
+                self.lightR.update(0.5, 1.)
+                self.entering = False
+                # self.triggered = False
+
+            if self.triggered and random.random() < 0.5:
+                self.nextState(self.CURIOUS)
+            elif t > self.stateEndTime:
+                self.nextState(self.ACTIVE)
+
+        elif self.state == self.ACTIVE:
+            # random walk in oscillations
+            if self.entering:
+                self.stateEndTime = t + random.uniform(10.0, 30.0)
+                self.lightL.update(0.5, 2)
+                self.lightR.update(0.5, 2)
+                self.entering = False
+                # self.triggered = False
+            else:
+                self.lightL.frequency += random.uniform(-0.01, 0.2)
+                self.lightR.frequency += random.uniform(-0.01, 0.2)
+
+            if self.triggered:
+                self.nextState(self.CURIOUS)
+            elif t > self.stateEndTime:
+                self.nextState(self.SLEEPING)
+
+        else: # curious
+            # one light "looking"
+            if self.entering:
+                self.stateEndTime = t + random.uniform(3.0, 6.0)
+                self.lightL.update(1, 10) # blink fast
+                self.lightR.update(0, 1) # dark
+                self.triggered = False
+                self.entering = False
+
+            if t > self.stateEndTime:
+                self.nextState(self.ACTIVE)
+
+        # send OSC messages
+        self.lightL.sendOsc()
+        self.lightR.sendOsc()
+
+    def trigger(self, t):
+        self.triggered = True
+
+curious_agent = CuriousAgent()
+def entities_loop():
+    while True:
+        t = time.time() - start_time
+        curious_agent.step(t)
+        time.sleep(0.1)
+
 # Main loop thread function.
 def main_loop():
     while True:
@@ -429,6 +468,7 @@ def main_loop():
 
 # Start main loop.
 threading.Thread(target=main_loop).start()
+threading.Thread(target=entities_loop).start()
 # threading.Thread(target=manifold_loop).start()
 
 # Assign OSC handlers and start server.
