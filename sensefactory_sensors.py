@@ -383,7 +383,8 @@ class EntityLight:
 
     def sendOsc(self):
         global client
-        client.send_message("/sensefactory/entity", [ self.id, self.frequency, self.intensity ])
+        freq = min(1.0, self.frequency / 10.) # remap frequenci in [0, 1]
+        client.send_message("/sensefactory/entity", [ self.id, freq, self.intensity ])
 
 class CuriousAgent:
     SLEEPING = 0
