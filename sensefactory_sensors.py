@@ -217,6 +217,8 @@ def record_detect(nid, speed):
     # Update energy.
     energy += speed * ENERGY_STEP
     energy = min(energy, 1.0)
+    if energy >= 1.0:
+        threading.Thread(target=energy_burst).start()
 
     send_stats()
 
@@ -224,12 +226,6 @@ def record_detect(nid, speed):
         print("room: {} prev: {} prevcount: {} unit: {}".format(roomId, prevRoomId, rooms[prevRoomId].getCount(), unit))
         print("energy: {}".format(energy))
 
-
-def energy_burst():
-    global manifold_model, manifold_scaler, energy
-    energy = 0.
-    client.send_message("/sensefactory/energy/burst", [])
-    manifold_model, manifold_scaler = manifold_train_isomap()
 
 dataset = []
 
@@ -273,11 +269,6 @@ def send_stats():
     norm_counts = get_rooms_counts_normalized(counts)
     norm_signal_counts = get_signals_counts_normalized()
 
-    client.send_message("/sensefactory/rooms/counts/raw", counts)
-    client.send_message("/sensefactory/rooms/counts/normalized", norm_counts)
-    client.send_message("/sensefactory/sensors/counts/normalized", norm_signal_counts)
-    client.send_message("/sensefactory/energy/value", [ energy ])
-    # client.send_message("/datasetsize", [ len(dataset) ])
 
     data_row += counts
     data_row += norm_counts
@@ -286,6 +277,13 @@ def send_stats():
 
     # Send manifold "supersense" data.
     manifold_data = manifold_transform(np.asarray(data_row)).tolist()
+
+    # Send all messages.
+    client.send_message("/sensefactory/rooms/counts/raw", counts)
+    client.send_message("/sensefactory/rooms/counts/normalized", norm_counts)
+    client.send_message("/sensefactory/sensors/counts/normalized", norm_signal_counts)
+    client.send_message("/sensefactory/energy/value", [ energy ])
+    # client.send_message("/datasetsize", [ len(dataset) ])
     client.send_message("/sensefactory/supersenses/raw", manifold_data )
 
     dataset.append(data_row)
@@ -297,15 +295,22 @@ manifold_n_neighbors = 30
 manifold_min_samples = 200
 manifold_max_samples = 5000
 
+def energy_burst():
+    global manifold_model, manifold_scaler, energy
+    energy = 0.
+    client.send_message("/sensefactory/energy/burst", [])
+    manifold_model, manifold_scaler = manifold_train_isomap()
+
 def manifold_transform(x):
     global manifold_model, manifold_scaler
     if manifold_model == None:
-        return np.full(manifold_dim, 0.5)
+        result = np.full(manifold_dim, 0.5)
     else:
         x = manifold_model.transform(x.reshape(1, -1))
         x = manifold_scaler.transform(x)
         x = np.clip(x, 0, 1)
-        return x[0]
+        result = x[0]
+    return result
 
 def manifold_train_isomap():
     if len(dataset) < manifold_min_samples:
@@ -457,16 +462,15 @@ def main_loop():
         
         time.sleep(period)
 
-def manifold_loop():
-    global manifold_model, manifold_scaler
-    while True:
-        if energy >= 1.0:
-            energy_burst()
+# def manifold_loop():
+#     global manifold_model, manifold_scaler
+#     while True:
+#         if energy >= 1.0:
+#             energy_burst()
 
 # Start main loop.
 threading.Thread(target=main_loop).start()
 threading.Thread(target=entities_loop).start()
-threading.Thread(target=manifold_loop).start()
 
 # Assign OSC handlers and start server.
 dispatcher.map("/minibee/data", receive_sensor)
