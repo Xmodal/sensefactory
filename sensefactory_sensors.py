@@ -15,11 +15,15 @@ from sklearn import (manifold, preprocessing)
 
 BASE_DISTANCE_THRESHOLD = 0.7
 
+#######################################################################################
+# Room / Sensor classes ###############################################################
+#######################################################################################
+
 # Max. number of people in the installation.
 MAX_COUNT_ROOM = 10.
 MAX_COUNT_TOTAL = 30.
 
-
+# Represents one of the rooms (including the "outdoor").
 class Room:
     def __init__(self, id):
         self._id = id
@@ -40,7 +44,8 @@ class Room:
         self.setCount(self.count + count)
 
 
-class NodeSignal:
+# Represents a sensor node
+class NodeSensor:
 
     def __init__(self, nodeId, entranceId, roomId, base_distance):
         self._nodeId = nodeId
@@ -111,8 +116,9 @@ class NodeSignal:
 
         return detected
 
-    # Create parser
-
+#######################################################################################
+# Argument parser #####################################################################
+#######################################################################################
 
 parser = argparse.ArgumentParser()
 
@@ -142,15 +148,18 @@ verbose_mode = args.verbose
 next_data_requested = False
 start_time = time.time()
 
-# Create data objects.
-node_signals = {}
-rooms = {}
+#######################################################################################
+# Rooms / Sensors objects #############################################################
+#######################################################################################
 
+# Create data objects.
+node_sensors = {}
+rooms = {}
 
 # Adds a node signal.
 def add_node(nodeId, entranceId, roomId, base_distance):
-    global node_signals
-    node_signals[nodeId] = NodeSignal(nodeId, entranceId, roomId, base_distance)
+    global node_sensors
+    node_sensors[nodeId] = NodeSensor(nodeId, entranceId, roomId, base_distance)
 
 
 # Adds a room object.
@@ -158,10 +167,9 @@ def add_room(roomId):
     global rooms
     rooms[roomId] = Room(roomId)
 
-
 # Create all nodes.
 add_node(8, 1, 1, 200)
-add_node(2, 2, 1, 65) # to verify
+add_node(2, 2, 1, 65)
 add_node(3, 3, 2, 82)
 add_node(4, 4, 2, 408)
 
@@ -182,17 +190,21 @@ add_room(1)
 add_room(2)
 add_room(3)
 
+#######################################################################################
+# OSC Handlers ########################################################################
+#######################################################################################
+
 energy = 0.
 ENERGY_STEP = 0.1
 
 
 # OSC Handler: Receive data from sensor.
 def receive_sensor(unused_addr, nid, distance, strength, integration):
-    global node_signals, start_time, client
+    global node_sensors, start_time, client
 
     t = time.time() - start_time
 
-    node = node_signals[nid]
+    node = node_sensors[nid]
     speed = node.update(t, distance)
 
     if speed:
@@ -208,9 +220,9 @@ def test_detect(unused_addr, nid, speed):
 
 # Helper function: record one detection.
 def record_detect(t, nid, speed):
-    global node_signals, energy
+    global node_sensors, energy
 
-    node = node_signals[nid]
+    node = node_sensors[nid]
     node.triggerDetect(speed)
 
     # Trigger information about detection.
@@ -234,13 +246,13 @@ def record_detect(t, nid, speed):
     # Check if we need to trigger the curious agent.
     entranceId = node.entranceId()
     if entranceId == 1:
-        curious_agent1.trigger(t, CuriousAgent.RIGHT)
+        curious_entity1.trigger(t, CuriousEntity.RIGHT)
     elif entranceId == 2:
-        curious_agent1.trigger(t, CuriousAgent.LEFT)
+        curious_entity1.trigger(t, CuriousEntity.LEFT)
     elif entranceId == 3:
-        curious_agent2.trigger(t, CuriousAgent.LEFT)
+        curious_entity2.trigger(t, CuriousEntity.LEFT)
     elif entranceId == 4:
-        curious_agent2.trigger(t, CuriousAgent.RIGHT)
+        curious_entity2.trigger(t, CuriousEntity.RIGHT)
 
     # Update energy.
     energy += speed * ENERGY_STEP
@@ -255,8 +267,9 @@ def record_detect(t, nid, speed):
         print("energy: {}".format(energy))
 
 
-dataset = []
-
+#######################################################################################
+# State statistics ####################################################################
+#######################################################################################
 
 def get_rooms_counts_raw():
     count1 = rooms[1].getCount()
@@ -266,7 +279,6 @@ def get_rooms_counts_raw():
 
     return [count1, count2, count3, totalCount]
 
-
 def get_rooms_counts_normalized(counts):
     norm1 = min(counts[0] / MAX_COUNT_ROOM, 1.)
     norm2 = min(counts[1] / MAX_COUNT_ROOM, 1.)
@@ -275,11 +287,10 @@ def get_rooms_counts_normalized(counts):
 
     return [norm1, norm2, norm3, totalNorm]
 
-
 def get_signals_counts_normalized():
     counts = []
     total = 0
-    for i, n in node_signals.items():
+    for i, n in node_sensors.items():
         c = n.getCount()
         total += c
         counts.append(c)
@@ -290,13 +301,13 @@ def get_signals_counts_normalized():
 
     return counts
 
-
 def get_signals_speeds_normalized():
     speeds = []
-    for i, n in node_signals.items():
+    for i, n in node_sensors.items():
         speeds.append(n.getAverageSpeed())
     return speeds
 
+dataset = []
 
 # Computes and sends basic statistics.
 def send_stats():
@@ -329,6 +340,9 @@ def send_stats():
 
     dataset.append(data_row)
 
+#######################################################################################
+# Manifold (supervised learning) ######################################################
+#######################################################################################
 
 manifold_dim = 2
 manifold_model = None
@@ -337,14 +351,14 @@ manifold_n_neighbors = 30
 manifold_min_samples = 200
 manifold_max_samples = 5000
 
-
+# When the energy bursts we retrain the manifold.
 def energy_burst():
     global manifold_model, manifold_scaler, energy
     energy = 0.
     client.send_message("/sensefactory/energy/burst", [])
     manifold_model, manifold_scaler = manifold_train_isomap()
 
-
+# Return a transformation of state x by the manifold.
 def manifold_transform(x):
     global manifold_model, manifold_scaler
     if manifold_model == None:
@@ -356,7 +370,7 @@ def manifold_transform(x):
         result = x[0]
     return result
 
-
+# Trains the manifold.
 def manifold_train_isomap():
     if len(dataset) < manifold_min_samples:
         return None, None
@@ -376,14 +390,11 @@ def manifold_train_isomap():
         scaler.fit(data)
         return model, scaler
 
-    # data_row.append(norm1)
-    # data_row.append(norm2)
-    # data_row.append(norm3)
-    # data_row.append(energy)
+#######################################################################################
+# Entities ############################################################################
+#######################################################################################
 
-    # dataset.append(data_row)
-
-
+# Represents one light inside an entity.
 class EntityLight:
     intensity = 0
     frequency = 0
@@ -414,8 +425,8 @@ class EntityLight:
         freq = min(1.0, self.frequency / 10.)  # remap frequenci in [0, 1]
         client.send_message("/sensefactory/entity", [self.id, freq, self.intensity])
 
-
-class CuriousAgent:
+# Represents one of the entities.
+class CuriousEntity:
     SLEEPING = 0
     ACTIVE = 1
     CURIOUS = 2
@@ -510,15 +521,15 @@ class CuriousAgent:
         self.triggered = side
 
 
-curious_agent1 = CuriousAgent(1, 2)
-curious_agent2 = CuriousAgent(4, 3)
+curious_entity1 = CuriousEntity(1, 2)
+curious_entity2 = CuriousEntity(4, 3)
 
 
 def entities_loop():
     while True:
         t = time.time() - start_time
-        curious_agent1.step(t)
-        curious_agent2.step(t)
+        curious_entity1.step(t)
+        curious_entity2.step(t)
         time.sleep(0.1)
 
 
