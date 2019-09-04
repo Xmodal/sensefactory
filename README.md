@@ -27,4 +27,5 @@ pip3 install python-osc numpy matplotlib sklearn
 | /sensefactory/energy/burst  |  |  | Event sent when energy reaches 1 |
 | /sensefactory/sensors/counts/normalized  | fffffff |  | Individual count of each sensor (normalized) |
 | /sensefactory/supersenses/raw  | ff | dim1 dim2 | Value of current state with reduced dimensionality |
+| /sensefactory/entity | iff | id frequency intensity | Control of oscillator lamp in 'entities')
 
