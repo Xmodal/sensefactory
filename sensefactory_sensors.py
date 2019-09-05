@@ -120,7 +120,7 @@ class NodeSensor:
 # Argument parser #####################################################################
 #######################################################################################
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 parser.add_argument("--receive-port", default="57120",
                     help="Specify the port number where data is received from the minibees.")
