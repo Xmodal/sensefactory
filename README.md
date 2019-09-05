@@ -30,5 +30,6 @@ pip3 install python-osc numpy matplotlib sklearn
 | /sensefactory/sensors/speeds/average | fffffff | speed1 ... speed7 | Individual average speed of each sensor |
 | /sensefactory/energy/value  | f | energy | Accumulated energy of the system in [0, 1]. Bursts when reaches 1. |
 | /sensefactory/energy/burst  |  |  | Event sent when energy reaches 1 |
+| /sensefactory/energy/miniburst  |  |  | Event sent with increased probability as energy increases |
 | /sensefactory/supersenses/raw  | ff | dim1 dim2 | Value of current state with reduced dimensionality |
 | /sensefactory/entity | iff | id frequency_Hz intensity | Control of oscillator lamp in 'entities')|

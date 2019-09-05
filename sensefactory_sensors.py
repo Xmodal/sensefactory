@@ -152,6 +152,8 @@ parser.add_argument("--base-energy-burst-period", default=180.0, type=float,
                     help="Base period after which energy bursts.")
 parser.add_argument("--sensor-energy-increment", default=0.1, type=float,
                     help="How much one sensor activation increments/accelerates energy towards burst in [0, 1].")
+parser.add_argument("--miniburst-probability", default=1.0, type=float,
+                    help="Controls the probability of minibursts (multiplied by energy) in [0, 1].")
 parser.add_argument("--verbose", action='store_true',
                     help="Verbose mode.")
 
@@ -171,6 +173,8 @@ sensor_energy_increment = args.sensor_energy_increment
 
 rooms_counts_decay_period = args.rooms_counts_decay_period
 sensors_counts_decay_period = args.sensors_counts_decay_period
+miniburst_probability = args.miniburst_probability
+
 next_data_requested = False
 start_time = time.time()
 
@@ -295,6 +299,8 @@ def record_detect(t, nid, speed):
 
     # Update energy.
     add_energy(speed * sensor_energy_increment)
+    if energy < 1.0 and random.random() < energy * miniburst_probability:
+        client.send_message("/sensefactory/energy/miniburst", [])
 
     # Send statistics.
     send_stats()
