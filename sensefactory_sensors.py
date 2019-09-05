@@ -345,7 +345,7 @@ manifold_model = None
 manifold_scaler = None
 manifold_n_neighbors = 30
 manifold_min_samples = 200
-manifold_max_samples = 5000
+manifold_max_samples = 2500
 
 # When the energy bursts we retrain the manifold.
 def energy_burst():
