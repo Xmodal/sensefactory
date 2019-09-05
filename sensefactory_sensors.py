@@ -137,7 +137,7 @@ parser.add_argument("--main-loop-frequency", default=10.0, type=float,
 parser.add_argument("--base-energy-burst-period", default=180.0, type=float,
                     help="Base period after which energy bursts.")
 parser.add_argument("--sensor-energy-increment", default=0.1, type=float,
-                    help="How much one sensor activation increments/accelerates energy towards burst (in %).")
+                    help="How much one sensor activation increments/accelerates energy towards burst in [0, 1].")
 parser.add_argument("--verbose", action='store_true',
                     help="Verbose mode.")
 
