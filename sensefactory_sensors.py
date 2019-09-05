@@ -63,6 +63,8 @@ class NodeSensor:
         self.count = 0.0
         self.total_speed = 0.0  # used to compute average speed
 
+        self.alive = False
+
     def nodeId(self):
         return self._nodeId
 
@@ -71,6 +73,10 @@ class NodeSensor:
 
     def roomId(self):
         return self._roomId
+
+    # Has the data network send any signal yet for this sensor?
+    def isAlive(self):
+        return self.alive
 
     def getCount(self):
         return self.count
@@ -86,6 +92,7 @@ class NodeSensor:
         self.total_speed += speed
 
     def update(self, t, distance):
+        self.alive = True
         detected = False
 
         # Someone is in front of the sensor.
@@ -108,11 +115,6 @@ class NodeSensor:
             # reset
             self.presence_detected = False
             self.presence_detection_start_time = 0
-
-        if verbose_mode:
-#            print("Udate nid={} at t={} and distance={}: speed={}".format(self.nodeId(), t, distance, detected))
-            if detected:
-                print("*** DETECTED {} ***".format(self.nodeId()))
 
         return detected
 
@@ -214,6 +216,15 @@ def add_energy(e):
     if energy >= 1.0:
         threading.Thread(target=energy_burst).start()
 
+# Find nodes that have yet not been accounted for.
+def get_missing_sensors():
+    global node_sensors
+    missing = []
+    for i, n in node_sensors.items():
+        if not n.isAlive():
+            missing.append(n.entranceId())
+    return missing
+
 # OSC Handler: Receive data from sensor.
 def receive_sensor(unused_addr, nid, distance, strength, integration):
     global node_sensors, start_time, client
@@ -223,9 +234,13 @@ def receive_sensor(unused_addr, nid, distance, strength, integration):
     node = node_sensors[nid]
     speed = node.update(t, distance)
 
+    if verbose_mode:
+        print("t=%10.2f   entrance=%d   nid=%d   distance=%7.2f   missing=%s" % (t, node.entranceId(), node.nodeId(), distance, get_missing_sensors()))
+        if speed:
+            print("*** DETECTED {} ***".format(node.nodeId()))
+
     if speed:
         record_detect(t, nid, speed)
-
 
 # OSC Handler: artificial data reception.
 def test_detect(unused_addr, nid, speed):
@@ -433,13 +448,13 @@ class CuriousEntity:
     state = 0
     entering = False
 
-    def __init__(self, leftLightId, rightLightId):
+    def __init__(self, id, leftLightId, rightLightId):
+        self.id = id
         self.lightL = EntityLight(leftLightId)
         self.lightR = EntityLight(rightLightId)
         self.stateEndTime = 0
         self.nextState(self.SLEEPING)
         self.triggered = False
-        pass
 
     def nextState(self, state):
         self.state = state
@@ -450,7 +465,7 @@ class CuriousEntity:
             # slow constant breathing
             if self.entering:
                 if verbose_mode:
-                    print("Curious agent: entering sleeping state")
+                    print("Curious agent {}: entering SLEEPING".format(self.id))
                 self.stateEndTime = t + random.uniform(10.0, 30.0)
                 self.lightL.update(0.1, 0.4)
                 self.lightR.update(0.1, 0.4)
@@ -469,7 +484,7 @@ class CuriousEntity:
             # random walk in oscillations
             if self.entering:
                 if verbose_mode:
-                    print("Curious agent: entering active state")
+                    print("Curious agent {}: entering ACTIVE".format(self.id))
                 self.stateEndTime = t + random.uniform(10.0, 30.0)
                 self.lightL.setIntensity(0.3)
                 self.lightR.setIntensity(0.3)
@@ -488,7 +503,7 @@ class CuriousEntity:
             # one light "looking"
             if self.entering:
                 if verbose_mode:
-                    print("Curious agent: entering curious state")
+                    print("Curious agent {}: entering CURIOUS".format(self.id))
                 self.stateEndTime = t + random.uniform(2.0, 4.0)
                 if self.triggered == self.LEFT:
                     lookingLight = self.lightL
@@ -517,8 +532,8 @@ class CuriousEntity:
         self.triggered = side
 
 
-curious_entity1 = CuriousEntity(1, 2)
-curious_entity2 = CuriousEntity(4, 3)
+curious_entity1 = CuriousEntity(1, 1, 2)
+curious_entity2 = CuriousEntity(2, 4, 3)
 
 
 def entities_loop():
