@@ -132,6 +132,12 @@ parser.add_argument("--max-presence-duration", default=10.0, type=float,
                     help="Period of time after which a presence is considered to have a speed of 0.")
 parser.add_argument("--invalid-presence-duration", default=300.0, type=float,
                     help="Period of time after which a presence is considered invalid because body is moving way too slow (in seconds). Prevents detection of inflatables.")
+parser.add_argument("--main-loop-frequency", default=10.0, type=float,
+                    help="Frequency of main loop (in Hz).")
+parser.add_argument("--base-energy-burst-period", default=180.0, type=float,
+                    help="Base period after which energy bursts.")
+parser.add_argument("--sensor-energy-increment", default=0.1, type=float,
+                    help="How much one sensor activation increments/accelerates energy towards burst (in %).")
 parser.add_argument("--verbose", action='store_true',
                     help="Verbose mode.")
 
@@ -144,6 +150,10 @@ server_thread = threading.Thread(target=server.serve_forever)
 max_presence_duration = args.max_presence_duration
 invalid_presence_duration = args.invalid_presence_duration
 verbose_mode = args.verbose
+main_loop_period = 1.0 / args.main_loop_frequency
+
+base_energy_burst_period = args.base_energy_burst_period
+sensor_energy_increment = args.sensor_energy_increment
 
 next_data_requested = False
 start_time = time.time()
@@ -185,7 +195,7 @@ LAST_ROOM_ID = 3
 N_ROOMS = 4
 
 # Create all rooms.
-add_room(0)  # Room 0 corresponds to the outdoor
+#add_room(0)  # Room 0 corresponds to the outdoor
 add_room(1)
 add_room(2)
 add_room(3)
@@ -194,9 +204,15 @@ add_room(3)
 # OSC Handlers ########################################################################
 #######################################################################################
 
+# Global energy parameter.
 energy = 0.
-ENERGY_STEP = 0.1
 
+def add_energy(e):
+    global energy
+    energy += e
+    energy = min(energy, 1.0)
+    if energy >= 1.0:
+        threading.Thread(target=energy_burst).start()
 
 # OSC Handler: Receive data from sensor.
 def receive_sensor(unused_addr, nid, distance, strength, integration):
@@ -217,7 +233,6 @@ def test_detect(unused_addr, nid, speed):
     t = time.time() - start_time
     record_detect(t, nid, speed)
 
-
 # Helper function: record one detection.
 def record_detect(t, nid, speed):
     global node_sensors, energy
@@ -230,18 +245,13 @@ def record_detect(t, nid, speed):
 
     # Update counts.
     roomId = node.roomId()
-    prevRoomId = roomId - 1
-    if prevRoomId < 0:
-        prevRoomId = LAST_ROOM_ID
-    # Max. one person moves from previous room to the next room.
-    if prevRoomId == OUTDOOR_ROOM_ID:
-        unit = 1  # there is always people outside
+    # When people exit: remove counts everywhere.
+    if roomId == OUTDOOR_ROOM_ID:
+        for i, r in rooms.items():
+            r.add(-1. / N_ROOMS)
+    # Otherwise: add 1 to the count.
     else:
-        count = rooms[prevRoomId].getCount()
-        int_count = int(count) + 1  # eg. count = 1.23294 --> int_count = 2
-        unit = count / int_count  # only add people that exist (or parts of people)
-    rooms[prevRoomId].add(-unit)
-    rooms[roomId].add(unit)
+        rooms[roomId].add(1.0)
 
     # Check if we need to trigger the curious agent.
     entranceId = node.entranceId()
@@ -255,15 +265,12 @@ def record_detect(t, nid, speed):
         curious_entity2.trigger(t, CuriousEntity.RIGHT)
 
     # Update energy.
-    energy += speed * ENERGY_STEP
-    energy = min(energy, 1.0)
-    if energy >= 1.0:
-        threading.Thread(target=energy_burst).start()
+    add_energy(speed * sensor_energy_increment)
 
+    # Send statistics.
     send_stats()
 
     if verbose_mode:
-        print("room: {} prev: {} prevcount: {} unit: {}".format(roomId, prevRoomId, rooms[prevRoomId].getCount(), unit))
         print("energy: {}".format(energy))
 
 
@@ -271,37 +278,25 @@ def record_detect(t, nid, speed):
 # State statistics ####################################################################
 #######################################################################################
 
-def get_rooms_counts_raw():
-    count1 = rooms[1].getCount()
-    count2 = rooms[2].getCount()
-    count3 = rooms[3].getCount()
-    totalCount = count1 + count2 + count3
-
-    return [count1, count2, count3, totalCount]
-
-def get_rooms_counts_normalized(counts):
-    norm1 = min(counts[0] / MAX_COUNT_ROOM, 1.)
-    norm2 = min(counts[1] / MAX_COUNT_ROOM, 1.)
-    norm3 = min(counts[2] / MAX_COUNT_ROOM, 1.)
-    totalNorm = min(counts[3] / MAX_COUNT_TOTAL, 1.)
-
-    return [norm1, norm2, norm3, totalNorm]
-
-def get_signals_counts_normalized():
+def get_counts_stats(array):
     counts = []
     total = 0
-    for i, n in node_sensors.items():
+    for i, n in array.items():
         c = n.getCount()
         total += c
         counts.append(c)
 
-    if total > 0:
-        for i in range(len(counts)):
-            counts[i] /= total
+    norm_counts = []
+    for i in range(len(counts)):
+        if total > 0:
+            norm = counts[i] / total
+        else:
+            norm = 1. / len(counts)
+        norm_counts.append(norm)
 
-    return counts
+    return counts, norm_counts, total
 
-def get_signals_speeds_normalized():
+def get_signals_speeds():
     speeds = []
     for i, n in node_sensors.items():
         speeds.append(n.getAverageSpeed())
@@ -315,15 +310,13 @@ def send_stats():
 
     data_row = []
 
-    counts = get_rooms_counts_raw()
-    norm_counts = get_rooms_counts_normalized(counts)
-    norm_signal_counts = get_signals_counts_normalized()
-    norm_signal_speeds = get_signals_speeds_normalized()
+    counts, norm_counts, total = get_counts_stats(rooms)
+    signal_counts, norm_signal_counts, signal_total = get_counts_stats(node_sensors)
+    signal_speeds = get_signals_speeds()
 
-    data_row += counts
     data_row += norm_counts
     data_row += norm_signal_counts
-    data_row += norm_signal_speeds
+    data_row += signal_speeds
     # data_row.append(energy) # don't add energy as it is not very much predictible according to the rest
 
     # Send manifold "supersense" data.
@@ -331,10 +324,13 @@ def send_stats():
 
     # Send all messages.
     client.send_message("/sensefactory/rooms/counts/raw", counts)
+    client.send_message("/sensefactory/rooms/counts/total", total)
     client.send_message("/sensefactory/rooms/counts/normalized", norm_counts)
+    client.send_message("/sensefactory/sensors/counts/raw", signal_counts)
+    client.send_message("/sensefactory/sensors/counts/total", signal_total)
     client.send_message("/sensefactory/sensors/counts/normalized", norm_signal_counts)
-    client.send_message("/sensefactory/sensors/speeds/normalized", norm_signal_speeds)
-    client.send_message("/sensefactory/energy/value", [energy])
+    client.send_message("/sensefactory/sensors/speeds/average", signal_speeds)
+    client.send_message("/sensefactory/energy/value", [ energy ])
     # client.send_message("/datasetsize", [ len(dataset) ])
     client.send_message("/sensefactory/supersenses/raw", manifold_data)
 
@@ -530,24 +526,21 @@ def entities_loop():
         t = time.time() - start_time
         curious_entity1.step(t)
         curious_entity2.step(t)
-        time.sleep(0.1)
-
+        time.sleep(main_loop_period)
 
 # Main loop thread function.
 def main_loop():
+    base_energy_increment = main_loop_period / base_energy_burst_period
+
     while True:
         # Send statistics.
         send_stats()
 
-        max_time_visitor_in_room = 300  # 5 minutes
-        period = 0.1
-        decay = 1.0 / (max_time_visitor_in_room / period)
+        # Increment energy naturally.
+        add_energy(base_energy_increment)
 
-        for i in range(1, N_ROOMS):
-            rooms[i].add(-decay)
-
-        time.sleep(period)
-
+        # Sleep.
+        time.sleep(main_loop_period)
 
 # def manifold_loop():
 #     global manifold_model, manifold_scaler
