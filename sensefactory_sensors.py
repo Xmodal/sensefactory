@@ -281,7 +281,7 @@ def record_detect(t, nid, speed):
     # When people exit: remove counts everywhere.
     if roomId == OUTDOOR_ROOM_ID:
         for i, r in rooms.items():
-            r.add(-1. / N_ROOMS)
+            r.add(-1.0)
     # Otherwise: add 1 to the count.
     else:
         rooms[roomId].add(1.0)
