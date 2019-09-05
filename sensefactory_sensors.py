@@ -81,6 +81,14 @@ class NodeSensor:
     def getCount(self):
         return self.count
 
+    def setCount(self, count):
+        if count < 0:
+            count = 0.0
+        self.count = count
+
+    def add(self, count):
+        self.setCount(self.count + count)
+
     def getAverageSpeed(self):
         if self.count == 0:
             return 0.0
@@ -136,6 +144,10 @@ parser.add_argument("--invalid-presence-duration", default=300.0, type=float,
                     help="Period of time after which a presence is considered invalid because body is moving way too slow (in seconds). Prevents detection of inflatables.")
 parser.add_argument("--main-loop-frequency", default=10.0, type=float,
                     help="Frequency of main loop (in Hz).")
+parser.add_argument("--rooms-counts-decay-period", default=300.0, type=float,
+                    help="Period at which room counts are decayed by 1.")
+parser.add_argument("--sensors-counts-decay-period", default=120.0, type=float,
+                    help="Period at which sensor counts are decayed by 1.")
 parser.add_argument("--base-energy-burst-period", default=180.0, type=float,
                     help="Base period after which energy bursts.")
 parser.add_argument("--sensor-energy-increment", default=0.1, type=float,
@@ -157,6 +169,8 @@ main_loop_period = 1.0 / args.main_loop_frequency
 base_energy_burst_period = args.base_energy_burst_period
 sensor_energy_increment = args.sensor_energy_increment
 
+rooms_counts_decay_period = args.rooms_counts_decay_period
+sensors_counts_decay_period = args.sensors_counts_decay_period
 next_data_requested = False
 start_time = time.time()
 
@@ -310,6 +324,10 @@ def get_counts_stats(array):
         norm_counts.append(norm)
 
     return counts, norm_counts, total
+
+def decay_counts(array, decay):
+    for i, elem in array.items():
+        elem.add(-decay)
 
 def get_signals_speeds():
     speeds = []
@@ -547,12 +565,18 @@ def entities_loop():
 def main_loop():
     base_energy_increment = main_loop_period / base_energy_burst_period
 
+    rooms_counts_decay = main_loop_period / rooms_counts_decay_period
+    sensors_counts_decay = main_loop_period / sensors_counts_decay_period
+
     while True:
         # Send statistics.
         send_stats()
 
         # Increment energy naturally.
         add_energy(base_energy_increment)
+
+        decay_counts(rooms, rooms_counts_decay)
+        decay_counts(node_sensors, sensors_counts_decay)
 
         # Sleep.
         time.sleep(main_loop_period)
