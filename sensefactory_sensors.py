@@ -77,7 +77,7 @@ class NodeSensor:
 
     def getAverageSpeed(self):
         if self.count == 0:
-            return 0
+            return 0.0
         else:
             return self.total_speed / self.count
 
