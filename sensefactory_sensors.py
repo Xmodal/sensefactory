@@ -200,13 +200,13 @@ def add_room(roomId):
 # Create all nodes.
 add_node(8, 1, 1, 200)
 add_node(2, 2, 1, 65)
-add_node(3, 3, 2, 82)
-add_node(4, 4, 2, 408)
+add_node(3, 3, 2, 95)
+add_node(4, 4, 2, 135)
 
-add_node(5, 5, 3, 96)
-add_node(6, 6, 3, 130)
+add_node(5, 5, 3, 110)
+add_node(6, 6, 3, 145)
 
-add_node(7, 7, 0, 140)
+add_node(7, 7, 0, 180)
 
 # add_node(8, 8, 0, 65535) # dummy
 
@@ -253,7 +253,7 @@ def receive_sensor(unused_addr, nid, distance, strength, integration):
     speed = node.update(t, distance)
 
     if verbose_mode:
-        print("t=%10.2f   entrance=%d   nid=%d   distance=%7.2f   missing=%s" % (t, node.entranceId(), node.nodeId(), distance, get_missing_sensors()))
+        print("t=%10.2f   entrance=%d   nid=%d   distance=%7.2f / %3.f   missing=%s" % (t, node.entranceId(), node.nodeId(), distance, node.base_distance, get_missing_sensors()))
         if speed:
             print("*** DETECTED {} ***".format(node.nodeId()))
 
