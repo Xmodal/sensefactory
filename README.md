@@ -6,17 +6,53 @@
 
 Requirements: Python 2.7
 
-In PydonGui use configuration file: SenseFactory_minibee/sensefactory.xml
+### Core Python script
 
-### Core Python scripts
-
-Requirements: Python 3 (brew install python3)
+Requirements: Python 3 (```brew install python3```)
 
 Dependencies:
-pip3 install python-osc numpy matplotlib sklearn
+```pip3 install python-osc numpy matplotlib sklearn```
 
+# Usage
+
+## Pydongui
  
- ## OSC Messages
+To start: ```pydongui.py```
+
+In the PydonGui interface use configuration file: ```SenseFactory_minibee/sensefactory.xml```
+
+## Core Python script
+
+To run the script:
+```
+python3 sensefactory_sensors.py
+```
+
+To stop the script: press CTRL-C.
+
+Summary of options:
+```
+usage: sensefactory_sensors.py [-h] [--receive-port RECEIVE_PORT]
+                               [--send-port SEND_PORT] [--ip IP]
+                               [--max-presence-duration MAX_PRESENCE_DURATION]
+                               [--invalid-presence-duration INVALID_PRESENCE_DURATION]
+                               [--main-loop-frequency MAIN_LOOP_FREQUENCY]
+                               [--rooms-counts-decay-period ROOMS_COUNTS_DECAY_PERIOD]
+                               [--sensors-counts-decay-period SENSORS_COUNTS_DECAY_PERIOD]
+                               [--base-energy-burst-period BASE_ENERGY_BURST_PERIOD]
+                               [--sensor-energy-increment SENSOR_ENERGY_INCREMENT]
+                               [--miniburst-probability MINIBURST_PROBABILITY]
+                               [--verbose]
+```
+ 
+Options used for the show in Munich (2019-09):
+```
+python3 sensefactory_sensors.py --send-port 57122 --sensor-energy-increment 0.01 --miniburst-probability 0.5 --verbose
+```
+
+Note: If you use a remote computer you also need to add the ```--ip``` option.
+ 
+### OSC Messages
  
 | Address  | Types | Arguments | Description |
 | -------  | ----- | --------- | ----------- |
