@@ -15,6 +15,10 @@ Dependencies:
 
 # Usage
 
+To start the installation you need to run the following two scripts:
+1. The ```pydongui.py``` script to listen to the minibee sensor network
+2. The core python script that runs all of the artificial intelligence / artificial life controls through OSC
+
 ## Pydongui
  
 To start: ```pydongui.py```
@@ -23,14 +27,26 @@ In the PydonGui interface use configuration file: ```SenseFactory_minibee/sensef
 
 ## Core Python script
 
+### Starting the script
+
 To run the script:
 ```
 python3 sensefactory_sensors.py
 ```
 
+OR you can use the following script which will run the python script with default options:
+```
+./launch_sensefactory.sh
+```
+
+Note: you will need to give yourself exec permissions on the file by running ```chmod u+x launch_sensefactory.sh```
+
+### Stopping the script
+
 To stop the script: press CTRL-C.
 
-Summary of options:
+### Summary of options
+
 ```
 usage: sensefactory_sensors.py [-h] [--receive-port RECEIVE_PORT]
                                [--send-port SEND_PORT] [--ip IP]
@@ -44,7 +60,7 @@ usage: sensefactory_sensors.py [-h] [--receive-port RECEIVE_PORT]
                                [--miniburst-probability MINIBURST_PROBABILITY]
                                [--verbose]
 ```
- 
+
 Options used for the show in Munich (2019-09):
 ```
 python3 sensefactory_sensors.py --send-port 57122 --sensor-energy-increment 0.01 --miniburst-probability 0.5 --verbose
